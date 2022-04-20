@@ -8,11 +8,17 @@ const Targeting = () => import("@/components/Flags/Targeting");
 const Segments = () => import("@/components/Segments");
 const Segment = () => import("@/components/Segments/Segment");
 const NewSegment = () => import("@/components/Segments/NewSegment");
+const Settings = () => import("@/components/Settings");
 
 Vue.use(Router);
 
 export default new Router({
   routes: [
+    {
+      path: "/settings",
+      name: "settings",
+      component: Settings,
+    },
     {
       path: "/",
       redirect: "/flags",

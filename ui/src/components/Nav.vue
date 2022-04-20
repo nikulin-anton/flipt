@@ -37,12 +37,19 @@
         >
       </div>
       <div class="navbar-end">
+        <RouterLink
+          class="navbar-item has-text-weight-semibold"
+          data-testid="settings"
+          :to="{ name: 'settings' }"
+        >
+          Settings
+        </RouterLink>
         <a
           class="navbar-item has-text-weight-semibold"
           target="_blank"
           href="https://flipt.io/docs/getting_started/?utm_source=app"
         >
-          Documentation
+          Docs
         </a>
         <a
           class="navbar-item has-text-weight-semibold"
