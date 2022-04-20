@@ -166,6 +166,7 @@
       <div class="modal-content">
         <div class="container">
           <div class="box">
+            <h5 class="title is-5">New Constraint</h5>
             <form>
               <b-field label="Property">
                 <b-input
@@ -249,6 +250,7 @@
       <div class="modal-content">
         <div class="container">
           <div class="box">
+            <h5 class="title is-5">Edit Constraint</h5>
             <form>
               <b-field label="Property">
                 <b-input

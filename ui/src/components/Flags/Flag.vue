@@ -159,8 +159,9 @@
       <div class="modal-content">
         <div class="container">
           <div class="box">
+            <h5 class="title is-5">New Variant</h5>
             <form>
-              <b-field label="New Variant">
+              <b-field label="Key">
                 <b-input
                   v-model="newVariant.key"
                   placeholder="Key"
@@ -224,8 +225,9 @@
       <div class="modal-content">
         <div class="container">
           <div class="box">
+            <h5 class="title is-5">Edit Variant</h5>
             <form>
-              <b-field label="New Variant">
+              <b-field label="Key">
                 <b-input
                   v-model="selectedVariant.key"
                   placeholder="Key"
