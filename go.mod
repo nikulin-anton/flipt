@@ -13,7 +13,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.13.0
 	github.com/go-chi/chi/v5 v5.0.8-0.20220103191336-b750c805b4ee
-	github.com/go-chi/cors v1.2.0
+	github.com/go-chi/cors v1.2.1
 	github.com/go-redis/cache/v8 v8.4.3
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.6.0

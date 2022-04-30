@@ -12,7 +12,10 @@ tasks:
       - task: clean
       - task: proto
       - task: assets
-      - task: build
+      - go build -trimpath -tags assets -ldflags "-X main.commit={{.GIT_COMMIT}}" -o ./bin/{{.PROJECT}} ./cmd/{{.PROJECT}}/.
+    vars:
+      GIT_COMMIT:
+        sh: set -e && git rev-parse --verify HEAD || ""
 
   assets:
     desc: Build the UI
