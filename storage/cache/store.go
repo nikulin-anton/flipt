@@ -13,7 +13,7 @@ var _ storage.Store = &Store{}
 type Store struct {
 	logger *logrus.Entry
 	cache  Cacher
-	store  storage.Store
+	storage.Store
 }
 
 // NewStore creates a new *CacheStore
@@ -21,10 +21,10 @@ func NewStore(logger *logrus.Entry, cache Cacher, store storage.Store) *Store {
 	return &Store{
 		logger: logger,
 		cache:  cache,
-		store:  store,
+		Store:  store,
 	}
 }
 
 func (c *Store) String() string {
-	return fmt.Sprintf("[cached] %s", c.store.String())
+	return fmt.Sprintf("[cached] %s", c.Store.String())
 }

@@ -82,26 +82,6 @@ func TestListFlags(t *testing.T) {
 	cacher.AssertNotCalled(t, "Get")
 }
 
-func TestCreateFlag(t *testing.T) {
-	var (
-		store   = &storeMock{}
-		cacher  = &cacherSpy{}
-		subject = NewStore(logger, cacher, store)
-	)
-
-	store.On("CreateFlag", mock.Anything, mock.Anything).Return(&flipt.Flag{Key: "foo"}, nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
-
-	flag, err := subject.CreateFlag(context.TODO(), &flipt.CreateFlagRequest{Key: "foo"})
-	require.NoError(t, err)
-	assert.NotNil(t, flag)
-
-	// should not be added
-	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
-}
-
 func TestUpdateFlag(t *testing.T) {
 	var (
 		store   = &storeMock{}
@@ -110,15 +90,15 @@ func TestUpdateFlag(t *testing.T) {
 	)
 
 	store.On("UpdateFlag", mock.Anything, mock.Anything).Return(&flipt.Flag{Key: "foo"}, nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
+	cacher.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	_, err := subject.UpdateFlag(context.TODO(), &flipt.UpdateFlagRequest{Key: "foo"})
 	require.NoError(t, err)
 
 	// should not be added
 	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
+	// should delete from cache
+	cacher.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 func TestDeleteFlag(t *testing.T) {
@@ -129,15 +109,15 @@ func TestDeleteFlag(t *testing.T) {
 	)
 
 	store.On("DeleteFlag", mock.Anything, mock.Anything).Return(nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
+	cacher.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	err := subject.DeleteFlag(context.TODO(), &flipt.DeleteFlagRequest{Key: "foo"})
 	require.NoError(t, err)
 
 	// should not be added
 	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
+	// should delete from cache
+	cacher.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 func TestCreateVariant(t *testing.T) {
@@ -148,15 +128,15 @@ func TestCreateVariant(t *testing.T) {
 	)
 
 	store.On("CreateVariant", mock.Anything, mock.Anything).Return(&flipt.Variant{FlagKey: "foo"}, nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
+	cacher.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	_, err := subject.CreateVariant(context.TODO(), &flipt.CreateVariantRequest{FlagKey: "foo"})
 	require.NoError(t, err)
 
 	// should not be added
 	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
+	// should delete from cache
+	cacher.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 func TestUpdateVariant(t *testing.T) {
@@ -167,15 +147,15 @@ func TestUpdateVariant(t *testing.T) {
 	)
 
 	store.On("UpdateVariant", mock.Anything, mock.Anything).Return(&flipt.Variant{FlagKey: "foo"}, nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
+	cacher.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	_, err := subject.UpdateVariant(context.TODO(), &flipt.UpdateVariantRequest{FlagKey: "foo"})
 	require.NoError(t, err)
 
 	// should not be added
 	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
+	// should delete from cache
+	cacher.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }
 
 func TestDeleteVariant(t *testing.T) {
@@ -186,13 +166,13 @@ func TestDeleteVariant(t *testing.T) {
 	)
 
 	store.On("DeleteVariant", mock.Anything, mock.Anything).Return(nil)
-	cacher.On("Flush", mock.Anything).Return(nil)
+	cacher.On("Delete", mock.Anything, mock.Anything).Return(nil)
 
 	err := subject.DeleteVariant(context.TODO(), &flipt.DeleteVariantRequest{FlagKey: "foo"})
 	require.NoError(t, err)
 
 	// should not be added
 	cacher.AssertNotCalled(t, "Set")
-	// should flush cache
-	cacher.AssertCalled(t, "Flush", mock.Anything)
+	// should delete from cache
+	cacher.AssertCalled(t, "Delete", mock.Anything, mock.Anything)
 }

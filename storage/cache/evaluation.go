@@ -37,7 +37,7 @@ func (c *Store) GetEvaluationRules(ctx context.Context, flagKey string) ([]*stor
 	}
 
 	// rules not in cache, delegate to underlying store
-	rules, err := c.store.GetEvaluationRules(ctx, flagKey)
+	rules, err := c.Store.GetEvaluationRules(ctx, flagKey)
 	if err != nil {
 		return rules, err
 	}
@@ -78,7 +78,7 @@ func (c *Store) GetEvaluationDistributions(ctx context.Context, ruleID string) (
 	}
 
 	// distributions not in cache, delegate to underlying store
-	distributions, err := c.store.GetEvaluationDistributions(ctx, ruleID)
+	distributions, err := c.Store.GetEvaluationDistributions(ctx, ruleID)
 	if err != nil {
 		return distributions, err
 	}

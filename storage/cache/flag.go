@@ -2,10 +2,8 @@ package cache
 
 import (
 	"context"
-	"fmt"
 
 	flipt "github.com/markphelps/flipt/rpc/flipt"
-	"github.com/markphelps/flipt/storage"
 )
 
 const flagCachePrefix = "flag:"
@@ -16,10 +14,7 @@ func (c *Store) GetFlag(ctx context.Context, k string) (*flipt.Flag, error) {
 	key := flagCachePrefix + k
 
 	// check if flag exists in cache
-	data, ok, err := c.cache.Get(ctx, key)
-	if err != nil {
-		return nil, fmt.Errorf("getting flag from cache: %w", err)
-	}
+	data, ok, _ := c.cache.Get(ctx, key)
 
 	if ok {
 		c.logger.Debugf("cache hit: %q", key)
@@ -27,7 +22,7 @@ func (c *Store) GetFlag(ctx context.Context, k string) (*flipt.Flag, error) {
 		flag, ok := data.(*flipt.Flag)
 		if !ok {
 			// not flag, bad cache
-			// TODO: should we just invalidate the cache instead of returning an error?
+			_ = c.cache.Delete(ctx, key)
 			return nil, ErrCorrupt
 		}
 
@@ -35,62 +30,53 @@ func (c *Store) GetFlag(ctx context.Context, k string) (*flipt.Flag, error) {
 	}
 
 	// flag not in cache, delegate to underlying store
-	flag, err := c.store.GetFlag(ctx, k)
+	flag, err := c.Store.GetFlag(ctx, k)
 	if err != nil {
 		return flag, err
 	}
 
-	if err := c.cache.Set(ctx, key, flag); err != nil {
-		return flag, err
-	}
+	_ = c.cache.Set(ctx, key, flag)
 
 	c.logger.Debugf("cache miss; added: %q", key)
 	return flag, nil
 }
 
-// ListFlags delegates to the underlying store
-func (c *Store) ListFlags(ctx context.Context, opts ...storage.QueryOption) ([]*flipt.Flag, error) {
-	return c.store.ListFlags(ctx, opts...)
-}
-
-// CreateFlag delegates to the underlying store, flushing the cache in the process
-func (c *Store) CreateFlag(ctx context.Context, r *flipt.CreateFlagRequest) (*flipt.Flag, error) {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.CreateFlag(ctx, r)
-}
-
-// UpdateFlag delegates to the underlying store, flushing the cache in the process
+// UpdateFlag delegates to the underlying store, deleting flag from the cache in the process
 func (c *Store) UpdateFlag(ctx context.Context, r *flipt.UpdateFlagRequest) (*flipt.Flag, error) {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.UpdateFlag(ctx, r)
+	key := flagCachePrefix + r.Key
+	_ = c.cache.Delete(ctx, key)
+	c.logger.Debugf("deleted flag from cache: %q", key)
+	return c.Store.UpdateFlag(ctx, r)
 }
 
-// DeleteFlag delegates to the underlying store, flushing the cache in the process
+// DeleteFlag delegates to the underlying store, deleting flag from the cache in the process
 func (c *Store) DeleteFlag(ctx context.Context, r *flipt.DeleteFlagRequest) error {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.DeleteFlag(ctx, r)
+	key := flagCachePrefix + r.Key
+	_ = c.cache.Delete(ctx, key)
+	c.logger.Debugf("deleted flag from cache: %q", key)
+	return c.Store.DeleteFlag(ctx, r)
 }
 
-// CreateVariant delegates to the underlying store, flushing the cache in the process
+// CreateVariant delegates to the underlying store, deleting flag from the cache in the process
 func (c *Store) CreateVariant(ctx context.Context, r *flipt.CreateVariantRequest) (*flipt.Variant, error) {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.CreateVariant(ctx, r)
+	key := flagCachePrefix + r.FlagKey
+	_ = c.cache.Delete(ctx, key)
+	c.logger.Debugf("deleted flag from cache: %q", key)
+	return c.Store.CreateVariant(ctx, r)
 }
 
-// UpdateVariant delegates to the underlying store, flushing the cache in the process
+// UpdateVariant delegates to the underlying store, deleting flag from the cache in the process
 func (c *Store) UpdateVariant(ctx context.Context, r *flipt.UpdateVariantRequest) (*flipt.Variant, error) {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.UpdateVariant(ctx, r)
+	key := flagCachePrefix + r.FlagKey
+	_ = c.cache.Delete(ctx, key)
+	c.logger.Debugf("deleted flag from cache: %q", key)
+	return c.Store.UpdateVariant(ctx, r)
 }
 
-// DeleteVariant delegates to the underlying store, flushing the cache in the process
+// DeleteVariant delegates to the underlying store, deleting flag from the cache in the process
 func (c *Store) DeleteVariant(ctx context.Context, r *flipt.DeleteVariantRequest) error {
-	c.cache.Flush(ctx)
-	c.logger.Debug("flushed cache")
-	return c.store.DeleteVariant(ctx, r)
+	key := flagCachePrefix + r.FlagKey
+	_ = c.cache.Delete(ctx, key)
+	c.logger.Debugf("deleted flag from cache: %q", key)
+	return c.Store.DeleteVariant(ctx, r)
 }
