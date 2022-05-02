@@ -385,15 +385,18 @@ func run(_ []string) error {
 			store = mysql.NewStore(db)
 		}
 
-		if cfg.Cache.Memory.Enabled {
-			cacher := memory.NewCache(cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval, logger)
-			if cfg.Cache.Memory.Expiration > 0 {
-				logger.Infof("in-memory cache enabled [expiration: %v, evictionInterval: %v]", cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval)
-			} else {
-				logger.Info("in-memory cache enabled with no expiration")
-			}
+		if cfg.Cache.Enabled {
+			switch cfg.Cache.Backend {
+			case config.CacheMemory:
+				cacher := memory.NewCache(cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval, logger)
+				if cfg.Cache.Memory.Expiration > 0 {
+					logger.Infof("in-memory cache enabled [expiration: %v, evictionInterval: %v]", cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval)
+				} else {
+					logger.Info("in-memory cache enabled with no expiration")
+				}
 
-			store = cache.NewStore(logger, cacher, store)
+				store = cache.NewStore(logger, cacher, store)
+			}
 		}
 
 		logger = logger.WithField("store", store.String())
