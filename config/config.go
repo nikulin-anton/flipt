@@ -67,9 +67,7 @@ var (
 )
 
 type MemoryCacheConfig struct {
-	Enabled          bool          `json:"enabled"`              // deprecated: v1.9.0
-	Expiration       time.Duration `json:"expiration,omitempty"` // deprecated: v1.9.0
-	TTL              time.Duration `json:"ttl,omitempty"`
+	Expiration       time.Duration `json:"expiration,omitempty"`
 	EvictionInterval time.Duration `json:"evictionInterval,omitempty"`
 }
 
@@ -190,9 +188,9 @@ func Default() *Config {
 		},
 
 		Cache: CacheConfig{
-
+			Enabled: false,
+			Backend: CacheMemory,
 			Memory: MemoryCacheConfig{
-				Enabled:          false,
 				Expiration:       30 * time.Second,
 				EvictionInterval: 5 * time.Minute,
 			},
@@ -243,7 +241,7 @@ const (
 	// Cache
 	cacheBackend                = "cache.backend"
 	cacheEnabled                = "cache.enabled"
-	cacheMemoryEnabled          = "cache.memory.enabled"
+	cacheMemoryEnabled          = "cache.memory.enabled" // deprecated: v1.9.0
 	cacheMemoryExpiration       = "cache.memory.expiration"
 	cacheMemoryEvictionInterval = "cache.memory.eviction_interval"
 	cacheRedisURL               = "cache.redis.url"
@@ -319,9 +317,14 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Cache
-	if viper.IsSet(cacheMemoryEnabled) {
-		cfg.Cache.Memory.Enabled = viper.GetBool(cacheMemoryEnabled)
+	if viper.GetBool(cacheMemoryEnabled) {
+		cfg.Cache.Backend = CacheMemory
+		cfg.Cache.Enabled = true
+		// TODO: log deprecated
+	}
 
+	switch cfg.Cache.Backend {
+	case CacheMemory:
 		if viper.IsSet(cacheMemoryExpiration) {
 			cfg.Cache.Memory.Expiration = viper.GetDuration(cacheMemoryExpiration)
 		}

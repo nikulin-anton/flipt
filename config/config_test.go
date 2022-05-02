@@ -77,8 +77,9 @@ func TestLoad(t *testing.T) {
 				},
 
 				Cache: CacheConfig{
+					Enabled: false,
+					Backend: CacheMemory,
 					Memory: MemoryCacheConfig{
-						Enabled:          false,
 						Expiration:       30 * time.Second,
 						EvictionInterval: 5 * time.Minute,
 					},
@@ -133,8 +134,9 @@ func TestLoad(t *testing.T) {
 					AllowedOrigins: []string{"foo.com"},
 				},
 				Cache: CacheConfig{
+					Enabled: true,
+					Backend: CacheMemory,
 					Memory: MemoryCacheConfig{
-						Enabled:          true,
 						Expiration:       30 * time.Second,
 						EvictionInterval: 5 * time.Minute,
 					},
