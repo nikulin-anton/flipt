@@ -79,8 +79,8 @@ func TestLoad(t *testing.T) {
 				Cache: CacheConfig{
 					Memory: MemoryCacheConfig{
 						Enabled:          false,
-						Expiration:       -1,
-						EvictionInterval: 10 * time.Minute,
+						Expiration:       30 * time.Second,
+						EvictionInterval: 5 * time.Minute,
 					},
 				},
 
@@ -135,8 +135,8 @@ func TestLoad(t *testing.T) {
 				Cache: CacheConfig{
 					Memory: MemoryCacheConfig{
 						Enabled:          true,
-						Expiration:       5 * time.Minute,
-						EvictionInterval: 1 * time.Minute,
+						Expiration:       30 * time.Second,
+						EvictionInterval: 5 * time.Minute,
 					},
 				},
 				Server: ServerConfig{

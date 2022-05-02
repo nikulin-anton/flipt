@@ -12,8 +12,8 @@ cors:
 cache:
   memory:
     enabled: true
-    expiration: 5m
-    eviction_interval: 1m
+    expiration: 30s
+    eviction_interval: 5m
 
 server:
   protocol: https
