@@ -11,7 +11,7 @@ log:
 # cache:
 #   memory:
 #     enabled: false
-#     expiration: -1 # Items Do Not Expire
+#     expiration: 30s # Items Expire After 30s
 #     eviction_interval: 10m # Evict Expired Items Every 10m
 
 # server:

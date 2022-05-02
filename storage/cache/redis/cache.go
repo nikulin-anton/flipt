@@ -14,32 +14,23 @@ func NewCache() *Redis {
 	return &Redis{}
 }
 
-func (r *Redis) Get(key string) (i interface{}, b bool) {
-	// TODO: add context to cacher interface
-	ctx := context.Background()
+func (r *Redis) Get(ctx context.Context, key string) (i interface{}, b bool, err error) {
 	if err := r.c.Get(ctx, key, i); err != nil {
-		return nil, false
+		return nil, false, err
 	}
-	return i, true
+	return i, true, nil
 }
 
-func (r *Redis) Set(key string, value interface{}) {
-	// TODO: add context to cacher interface
-	ctx := context.Background()
-	// TODO: modify cacher.Set to return err
-	_ = r.c.Set(&cache.Item{
+func (r *Redis) Set(ctx context.Context, key string, value interface{}) error {
+	return r.c.Set(&cache.Item{
 		Ctx:   ctx,
 		Key:   key,
 		Value: value,
 	})
 }
 
-func (r *Redis) Delete(key string) {
-	panic("not implemented") // TODO: Implement
-}
-
-func (r *Redis) Flush() {
-	panic("not implemented") // TODO: Implement
+func (r *Redis) Delete(ctx context.Context, key string) error {
+	return r.c.Delete(ctx, key)
 }
 
 func (r *Redis) String() string {

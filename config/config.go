@@ -39,14 +39,44 @@ type CorsConfig struct {
 	AllowedOrigins []string `json:"allowedOrigins,omitempty"`
 }
 
+// CacheBackend is either memory or redis
+type CacheBackend uint8
+
+func (c CacheBackend) String() string {
+	return cacheBackendToString[c]
+}
+
+const (
+	_ CacheBackend = iota
+	// CacheMemory ...
+	CacheMemory
+	// CacheRedis ...
+	CacheRedis
+)
+
+var (
+	cacheBackendToString = map[CacheBackend]string{
+		CacheMemory: "memory",
+		CacheRedis:  "redis",
+	}
+
+	stringToCacheBackend = map[string]CacheBackend{
+		"memory": CacheMemory,
+		"redis":  CacheRedis,
+	}
+)
+
 type MemoryCacheConfig struct {
-	Enabled          bool          `json:"enabled"`
-	Expiration       time.Duration `json:"expiration,omitempty"`
+	Enabled          bool          `json:"enabled"`              // deprecated: v1.9.0
+	Expiration       time.Duration `json:"expiration,omitempty"` // deprecated: v1.9.0
+	TTL              time.Duration `json:"ttl,omitempty"`
 	EvictionInterval time.Duration `json:"evictionInterval,omitempty"`
 }
 
 type CacheConfig struct {
-	Memory MemoryCacheConfig `json:"memory,omitempty"`
+	Enabled bool              `json:"enabled"`
+	Backend CacheBackend      `json:"backend,omitempty"`
+	Memory  MemoryCacheConfig `json:"memory,omitempty"`
 }
 
 type ServerConfig struct {
@@ -160,10 +190,11 @@ func Default() *Config {
 		},
 
 		Cache: CacheConfig{
+
 			Memory: MemoryCacheConfig{
 				Enabled:          false,
-				Expiration:       -1,
-				EvictionInterval: 10 * time.Minute,
+				Expiration:       30 * time.Second,
+				EvictionInterval: 5 * time.Minute,
 			},
 		},
 
@@ -210,9 +241,13 @@ const (
 	corsAllowedOrigins = "cors.allowed_origins"
 
 	// Cache
+	cacheBackend                = "cache.backend"
+	cacheEnabled                = "cache.enabled"
 	cacheMemoryEnabled          = "cache.memory.enabled"
 	cacheMemoryExpiration       = "cache.memory.expiration"
 	cacheMemoryEvictionInterval = "cache.memory.eviction_interval"
+	cacheRedisURL               = "cache.redis.url"
+	cacheRedisTTL               = "cache.redis.ttl"
 
 	// Server
 	serverHost      = "server.host"
