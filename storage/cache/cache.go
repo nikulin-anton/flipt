@@ -2,13 +2,7 @@ package cache
 
 import (
 	"context"
-	"errors"
 	"fmt"
-)
-
-var (
-	// ErrCorrupt represents a corrupt cache error
-	ErrCorrupt = errors.New("cache corrupted")
 )
 
 // Cacher modifies and queries a cache

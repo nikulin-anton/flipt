@@ -14,7 +14,6 @@ const (
 
 // GetEvaluationRules returns all rules applicable to the flagKey provided from the cache if they exist; delegating to the underlying store and caching the result if no error
 func (c *Store) GetEvaluationRules(ctx context.Context, flagKey string) ([]*storage.EvaluationRule, error) {
-
 	key := evaluationRulesCachePrefix + flagKey
 
 	// check if rules exists in cache
@@ -29,13 +28,17 @@ func (c *Store) GetEvaluationRules(ctx context.Context, flagKey string) ([]*stor
 		rules, ok := data.([]*storage.EvaluationRule)
 		if !ok {
 			// not rules slice, bad cache
-			// TODO: should we just invalidate the cache instead of returning an error?
-			return nil, ErrCorrupt
+			c.logger.Errorf("corrupt cache, deleting: %q", key)
+			if err := c.cache.Delete(ctx, key); err != nil {
+				c.logger.WithError(err).Error("deleting cache entry")
+			}
+			goto db
 		}
 
 		return rules, nil
 	}
 
+db:
 	// rules not in cache, delegate to underlying store
 	rules, err := c.Store.GetEvaluationRules(ctx, flagKey)
 	if err != nil {
@@ -72,14 +75,17 @@ func (c *Store) GetEvaluationDistributions(ctx context.Context, ruleID string) (
 		distributions, ok := data.([]*storage.EvaluationDistribution)
 		if !ok {
 			// not distributions slice, bad cache
-			// TODO: should we just invalidate the cache instead of returning an error?
-
-			return nil, ErrCorrupt
+			c.logger.Errorf("corrupt cache, deleting: %q", key)
+			if err := c.cache.Delete(ctx, key); err != nil {
+				c.logger.WithError(err).Error("deleting cache entry")
+			}
+			goto db
 		}
 
 		return distributions, nil
 	}
 
+db:
 	// distributions not in cache, delegate to underlying store
 	distributions, err := c.Store.GetEvaluationDistributions(ctx, ruleID)
 	if err != nil {
