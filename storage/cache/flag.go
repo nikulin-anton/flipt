@@ -22,13 +22,17 @@ func (c *Store) GetFlag(ctx context.Context, k string) (*flipt.Flag, error) {
 		flag, ok := data.(*flipt.Flag)
 		if !ok {
 			// not flag, bad cache
-			_ = c.cache.Delete(ctx, key)
-			return nil, ErrCorrupt
+			c.logger.Errorf("corrupt cache, deleting: %q", key)
+			if err := c.cache.Delete(ctx, key); err != nil {
+				c.logger.WithError(err).Error("deleting cache entry")
+			}
+			goto db
 		}
 
 		return flag, nil
 	}
 
+db:
 	// flag not in cache, delegate to underlying store
 	flag, err := c.Store.GetFlag(ctx, k)
 	if err != nil {
