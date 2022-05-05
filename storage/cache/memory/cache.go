@@ -2,91 +2,86 @@ package memory
 
 import (
 	"context"
+	"sync"
 	"time"
 
+	"github.com/markphelps/flipt/storage/cache"
 	gocache "github.com/patrickmn/go-cache"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
 )
 
 // InMemoryCache wraps gocache.Cache in order to implement Cacher
 type InMemoryCache struct {
-	c *gocache.Cache
+	c             *gocache.Cache
+	mu            sync.RWMutex
+	itemCount     int64
+	missTotal     int64
+	hitTotal      int64
+	evictionTotal int64
 }
 
-const (
-	namespace = "flipt"
-	subsystem = "cache"
-)
-
-var (
-	cacheHitTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "hit_total",
-		Help:      "The number of cache hits",
-	}, []string{"cache"})
-
-	cacheMissTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "miss_total",
-		Help:      "The number of cache misses",
-	}, []string{"cache"})
-
-	cacheItemCount = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "item_count",
-		Help:      "The number of items currently in the cache",
-	}, []string{"cache"})
-
-	cacheEvictionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "eviction_total",
-		Help:      "The number of times an item is evicted from the cache",
-	}, []string{"cache"})
-)
-
-// NewCache creates a new InMemoryCache with the provided expiration and evictionInterval
-func NewCache(expiration time.Duration, evictionInterval time.Duration, logger logrus.FieldLogger) *InMemoryCache {
+// NewCache creates a new InMemoryCache with the provided ttl and evictionInterval
+func NewCache(ttl time.Duration, evictionInterval time.Duration, logger logrus.FieldLogger) *InMemoryCache {
 	logger = logger.WithField("cache", "memory")
 
-	c := gocache.New(expiration, evictionInterval)
+	var (
+		c     = gocache.New(ttl, evictionInterval)
+		cache = &InMemoryCache{c: c}
+	)
+
 	c.OnEvicted(func(s string, _ interface{}) {
-		cacheEvictionTotal.WithLabelValues("memory").Inc()
-		cacheItemCount.WithLabelValues("memory").Dec()
+		cache.mu.Lock()
+		cache.itemCount--
+		cache.evictionTotal++
+		cache.mu.Unlock()
 		logger.Debugf("evicted key: %q", s)
 	})
 
-	return &InMemoryCache{c: c}
+	return cache
 }
 
 func (i *InMemoryCache) Get(_ context.Context, key string) (interface{}, bool, error) {
 	v, ok := i.c.Get(key)
 	if !ok {
-		cacheMissTotal.WithLabelValues("memory").Inc()
+		i.mu.Lock()
+		i.missTotal++
+		i.mu.Unlock()
 		return nil, false, nil
 	}
 
-	cacheHitTotal.WithLabelValues("memory").Inc()
+	i.mu.Lock()
+	i.hitTotal++
+	i.mu.Unlock()
 	return v, true, nil
 }
 
 func (i *InMemoryCache) Set(_ context.Context, key string, value interface{}) error {
 	i.c.SetDefault(key, value)
-	cacheItemCount.WithLabelValues("memory").Inc()
+	i.mu.Lock()
+	i.itemCount++
+	i.mu.Unlock()
 	return nil
 }
 
 func (i *InMemoryCache) Delete(_ context.Context, key string) error {
 	i.c.Delete(key)
-	cacheItemCount.WithLabelValues("memory").Dec()
+	i.mu.Lock()
+	i.itemCount--
+	i.mu.Unlock()
 	return nil
 }
 
 func (i *InMemoryCache) String() string {
 	return "memory"
+}
+
+func (i *InMemoryCache) Stats() cache.Stats {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return cache.Stats{
+		ItemCount:     i.itemCount,
+		MissTotal:     i.missTotal,
+		HitTotal:      i.hitTotal,
+		EvictionTotal: i.evictionTotal,
+	}
 }

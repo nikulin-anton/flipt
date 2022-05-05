@@ -41,6 +41,10 @@ func (s *cacherSpy) Flush(ctx context.Context) error {
 	return args.Error(0)
 }
 
+func (s *cacherSpy) Stats() Stats {
+	return Stats{}
+}
+
 var _ storage.Store = &storeMock{}
 
 type storeMock struct {

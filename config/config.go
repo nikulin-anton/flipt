@@ -67,12 +67,12 @@ var (
 )
 
 type MemoryCacheConfig struct {
-	Expiration       time.Duration `json:"expiration,omitempty"`
 	EvictionInterval time.Duration `json:"evictionInterval,omitempty"`
 }
 
 type CacheConfig struct {
 	Enabled bool              `json:"enabled"`
+	TTL     time.Duration     `json:"ttl,omitempty"`
 	Backend CacheBackend      `json:"backend,omitempty"`
 	Memory  MemoryCacheConfig `json:"memory,omitempty"`
 }
@@ -190,8 +190,8 @@ func Default() *Config {
 		Cache: CacheConfig{
 			Enabled: false,
 			Backend: CacheMemory,
+			TTL:     30 * time.Second,
 			Memory: MemoryCacheConfig{
-				Expiration:       30 * time.Second,
 				EvictionInterval: 5 * time.Minute,
 			},
 		},
@@ -241,11 +241,11 @@ const (
 	// Cache
 	cacheBackend                = "cache.backend"
 	cacheEnabled                = "cache.enabled"
-	cacheMemoryEnabled          = "cache.memory.enabled" // deprecated: v1.9.0
-	cacheMemoryExpiration       = "cache.memory.expiration"
+	cacheTTL                    = "cache.ttl"
+	cacheMemoryEnabled          = "cache.memory.enabled"    // deprecated in v1.9.0
+	cacheMemoryExpiration       = "cache.memory.expiration" // deprecated in v1.9.0
 	cacheMemoryEvictionInterval = "cache.memory.eviction_interval"
 	cacheRedisURL               = "cache.redis.url"
-	cacheRedisTTL               = "cache.redis.ttl"
 
 	// Server
 	serverHost      = "server.host"
@@ -321,12 +321,21 @@ func Load(path string) (*Config, error) {
 		cfg.Cache.Backend = CacheMemory
 		cfg.Cache.Enabled = true
 		// TODO: log deprecated
+	} else if viper.IsSet(cacheEnabled) {
+		cfg.Cache.Enabled = viper.GetBool(cacheEnabled)
+		if viper.IsSet(cacheBackend) {
+			cfg.Cache.Backend = stringToCacheBackend[viper.GetString(cacheBackend)]
+		}
+		if viper.IsSet(cacheTTL) {
+			cfg.Cache.TTL = viper.GetDuration(cacheTTL)
+		}
 	}
 
 	switch cfg.Cache.Backend {
 	case CacheMemory:
 		if viper.IsSet(cacheMemoryExpiration) {
-			cfg.Cache.Memory.Expiration = viper.GetDuration(cacheMemoryExpiration)
+			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
+			// TODO: log deprecated
 		}
 		if viper.IsSet(cacheMemoryEvictionInterval) {
 			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
