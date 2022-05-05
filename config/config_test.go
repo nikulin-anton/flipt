@@ -47,127 +47,141 @@ func TestLoad(t *testing.T) {
 		name     string
 		path     string
 		wantErr  bool
-		expected *Config
+		expected func() *Config
 	}{
 		{
 			name:     "defaults",
 			path:     "./testdata/default.yml",
-			expected: Default(),
+			expected: Default,
 		},
 		{
-			name:     "deprecated defaults",
-			path:     "./testdata/deprecated.yml",
-			expected: Default(),
+			name:     "deprecated - memory items defaults",
+			path:     "./testdata/deprecated/memory_items.yml",
+			expected: Default,
+		},
+		{
+			name: "deprecated - memory enabled",
+			path: "./testdata/deprecated/memory_enabled.yml",
+			expected: func() *Config {
+				cfg := Default()
+				cfg.Cache.Enabled = true
+				cfg.Cache.Backend = CacheMemory
+				return cfg
+			},
 		},
 		{
 			name: "database key/value",
 			path: "./testdata/database.yml",
-			expected: &Config{
-				Log: LogConfig{
-					Level: "INFO",
-				},
-
-				UI: UIConfig{
-					Enabled: true,
-				},
-
-				Cors: CorsConfig{
-					Enabled:        false,
-					AllowedOrigins: []string{"*"},
-				},
-
-				Cache: CacheConfig{
-					Enabled: false,
-					Backend: CacheMemory,
-					Memory: MemoryCacheConfig{
-						Expiration:       30 * time.Second,
-						EvictionInterval: 5 * time.Minute,
+			expected: func() *Config {
+				return &Config{
+					Log: LogConfig{
+						Level: "INFO",
 					},
-				},
 
-				Server: ServerConfig{
-					Host:      "0.0.0.0",
-					Protocol:  HTTP,
-					HTTPPort:  8080,
-					HTTPSPort: 443,
-					GRPCPort:  9000,
-				},
+					UI: UIConfig{
+						Enabled: true,
+					},
 
-				Tracing: TracingConfig{
-					Jaeger: JaegerTracingConfig{
+					Cors: CorsConfig{
+						Enabled:        false,
+						AllowedOrigins: []string{"*"},
+					},
+
+					Cache: CacheConfig{
 						Enabled: false,
-						Host:    jaeger.DefaultUDPSpanServerHost,
-						Port:    jaeger.DefaultUDPSpanServerPort,
+						Backend: CacheMemory,
+						Memory: MemoryCacheConfig{
+							Expiration:       30 * time.Second,
+							EvictionInterval: 5 * time.Minute,
+						},
 					},
-				},
 
-				Database: DatabaseConfig{
-					Protocol:       DatabaseMySQL,
-					Host:           "localhost",
-					Port:           3306,
-					User:           "flipt",
-					Password:       "s3cr3t!",
-					Name:           "flipt",
-					MigrationsPath: "/etc/flipt/config/migrations",
-					MaxIdleConn:    2,
-				},
+					Server: ServerConfig{
+						Host:      "0.0.0.0",
+						Protocol:  HTTP,
+						HTTPPort:  8080,
+						HTTPSPort: 443,
+						GRPCPort:  9000,
+					},
 
-				Meta: MetaConfig{
-					CheckForUpdates:  true,
-					TelemetryEnabled: true,
-				},
+					Tracing: TracingConfig{
+						Jaeger: JaegerTracingConfig{
+							Enabled: false,
+							Host:    jaeger.DefaultUDPSpanServerHost,
+							Port:    jaeger.DefaultUDPSpanServerPort,
+						},
+					},
+
+					Database: DatabaseConfig{
+						Protocol:       DatabaseMySQL,
+						Host:           "localhost",
+						Port:           3306,
+						User:           "flipt",
+						Password:       "s3cr3t!",
+						Name:           "flipt",
+						MigrationsPath: "/etc/flipt/config/migrations",
+						MaxIdleConn:    2,
+					},
+
+					Meta: MetaConfig{
+						CheckForUpdates:  true,
+						TelemetryEnabled: true,
+					},
+				}
 			},
 		},
 		{
 			name: "advanced",
 			path: "./testdata/advanced.yml",
-			expected: &Config{
-				Log: LogConfig{
-					Level: "WARN",
-					File:  "testLogFile.txt",
-				},
-				UI: UIConfig{
-					Enabled: false,
-				},
-				Cors: CorsConfig{
-					Enabled:        true,
-					AllowedOrigins: []string{"foo.com"},
-				},
-				Cache: CacheConfig{
-					Enabled: true,
-					Backend: CacheMemory,
-					Memory: MemoryCacheConfig{
-						Expiration:       30 * time.Second,
-						EvictionInterval: 5 * time.Minute,
+			expected: func() *Config {
+				return &Config{
+					Log: LogConfig{
+						Level: "WARN",
+						File:  "testLogFile.txt",
 					},
-				},
-				Server: ServerConfig{
-					Host:      "127.0.0.1",
-					Protocol:  HTTPS,
-					HTTPPort:  8081,
-					HTTPSPort: 8080,
-					GRPCPort:  9001,
-					CertFile:  "./testdata/ssl_cert.pem",
-					CertKey:   "./testdata/ssl_key.pem",
-				},
-				Tracing: TracingConfig{
-					Jaeger: JaegerTracingConfig{
+					UI: UIConfig{
+						Enabled: false,
+					},
+					Cors: CorsConfig{
+						Enabled:        true,
+						AllowedOrigins: []string{"foo.com"},
+					},
+					Cache: CacheConfig{
 						Enabled: true,
-						Host:    "localhost",
-						Port:    6831,
+						Backend: CacheMemory,
+						Memory: MemoryCacheConfig{
+							Expiration:       30 * time.Second,
+							EvictionInterval: 5 * time.Minute,
+						},
 					},
-				},
-				Database: DatabaseConfig{
-					MigrationsPath:  "./config/migrations",
-					URL:             "postgres://postgres@localhost:5432/flipt?sslmode=disable",
-					MaxIdleConn:     10,
-					MaxOpenConn:     50,
-					ConnMaxLifetime: 30 * time.Minute,
-				},
-				Meta: MetaConfig{
-					CheckForUpdates:  false,
-					TelemetryEnabled: false,
-				},
+					Server: ServerConfig{
+						Host:      "127.0.0.1",
+						Protocol:  HTTPS,
+						HTTPPort:  8081,
+						HTTPSPort: 8080,
+						GRPCPort:  9001,
+						CertFile:  "./testdata/ssl_cert.pem",
+						CertKey:   "./testdata/ssl_key.pem",
+					},
+					Tracing: TracingConfig{
+						Jaeger: JaegerTracingConfig{
+							Enabled: true,
+							Host:    "localhost",
+							Port:    6831,
+						},
+					},
+					Database: DatabaseConfig{
+						MigrationsPath:  "./config/migrations",
+						URL:             "postgres://postgres@localhost:5432/flipt?sslmode=disable",
+						MaxIdleConn:     10,
+						MaxOpenConn:     50,
+						ConnMaxLifetime: 30 * time.Minute,
+					},
+					Meta: MetaConfig{
+						CheckForUpdates:  false,
+						TelemetryEnabled: false,
+					},
+				}
 			},
 		},
 	}
@@ -176,7 +190,7 @@ func TestLoad(t *testing.T) {
 		var (
 			path     = tt.path
 			wantErr  = tt.wantErr
-			expected = tt.expected
+			expected = tt.expected()
 		)
 
 		t.Run(tt.name, func(t *testing.T) {
