@@ -388,13 +388,7 @@ func run(_ []string) error {
 		if cfg.Cache.Enabled {
 			switch cfg.Cache.Backend {
 			case config.CacheMemory:
-				cacher := memory.NewCache(cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval, logger)
-				if cfg.Cache.Memory.Expiration > 0 {
-					logger.Infof("in-memory cache enabled [expiration: %v, evictionInterval: %v]", cfg.Cache.Memory.Expiration, cfg.Cache.Memory.EvictionInterval)
-				} else {
-					logger.Info("in-memory cache enabled with no expiration")
-				}
-
+				cacher := memory.NewCache(cfg.Cache.TTL, cfg.Cache.Memory.EvictionInterval, logger)
 				store = cache.NewStore(logger, cacher, store)
 			}
 		}

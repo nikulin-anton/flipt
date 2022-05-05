@@ -9,9 +9,10 @@
 #   allowed_origins: "*"
 
 # cache:
+#   enabled: false
+#   backend: memory
+#   ttl: 30s # Items Expire After 30s
 #   memory:
-#     enabled: false
-#     expiration: 30s # Items Expire After 30s
 #     eviction_interval: 5m # Evict Expired Items Every 5m
 
 # server:

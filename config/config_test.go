@@ -90,8 +90,8 @@ func TestLoad(t *testing.T) {
 					Cache: CacheConfig{
 						Enabled: false,
 						Backend: CacheMemory,
+						TTL:     30 * time.Second,
 						Memory: MemoryCacheConfig{
-							Expiration:       30 * time.Second,
 							EvictionInterval: 5 * time.Minute,
 						},
 					},
@@ -149,8 +149,8 @@ func TestLoad(t *testing.T) {
 					Cache: CacheConfig{
 						Enabled: true,
 						Backend: CacheMemory,
+						TTL:     30 * time.Second,
 						Memory: MemoryCacheConfig{
-							Expiration:       30 * time.Second,
 							EvictionInterval: 5 * time.Minute,
 						},
 					},
