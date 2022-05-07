@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -654,73 +653,6 @@ func BenchmarkGetRule(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			r, _ = store.GetRule(ctx, rule.Id)
-		}
-
-		benchRule = r
-	})
-}
-
-func BenchmarkGetRule_CacheMemory(b *testing.B) {
-	var (
-		l, _       = test.NewNullLogger()
-		logger     = logrus.NewEntry(l)
-		cacher     = memory.NewCache(5*time.Minute, 10*time.Minute, logger)
-		storeCache = cache.NewStore(logger, cacher, store)
-
-		ctx       = context.Background()
-		flag, err = store.CreateFlag(ctx, &flipt.CreateFlagRequest{
-			Key:         b.Name(),
-			Name:        "foo",
-			Description: "bar",
-			Enabled:     true,
-		})
-	)
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	_, err = store.CreateVariant(ctx, &flipt.CreateVariantRequest{
-		FlagKey:     flag.Key,
-		Key:         b.Name(),
-		Name:        "foo",
-		Description: "bar",
-	})
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	segment, err := store.CreateSegment(ctx, &flipt.CreateSegmentRequest{
-		Key:         b.Name(),
-		Name:        "foo",
-		Description: "bar",
-	})
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	rule, err := storeCache.CreateRule(ctx, &flipt.CreateRuleRequest{
-		FlagKey:    flag.Key,
-		SegmentKey: segment.Key,
-		Rank:       1,
-	})
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	var r *flipt.Rule
-
-	// warm the cache
-	r, _ = storeCache.GetRule(ctx, rule.Id)
-
-	b.ResetTimer()
-
-	b.Run("get-rule-cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			r, _ = storeCache.GetRule(ctx, rule.Id)
 		}
 
 		benchRule = r

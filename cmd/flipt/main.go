@@ -385,14 +385,6 @@ func run(_ []string) error {
 			store = mysql.NewStore(db)
 		}
 
-		if cfg.Cache.Enabled {
-			switch cfg.Cache.Backend {
-			case config.CacheMemory:
-				cacher := memory.NewCache(cfg.Cache.TTL, cfg.Cache.Memory.EvictionInterval, logger)
-				store = cache.NewStore(logger, cacher, store)
-			}
-		}
-
 		logger = logger.WithField("store", store.String())
 
 		var tracer opentracing.Tracer = &opentracing.NoopTracer{}

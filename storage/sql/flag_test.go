@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -610,52 +609,6 @@ func BenchmarkGetFlag(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			f, _ = store.GetFlag(context.TODO(), flag.Key)
-		}
-
-		benchFlag = f
-	})
-}
-
-func BenchmarkGetFlag_CacheMemory(b *testing.B) {
-	var (
-		l, _       = test.NewNullLogger()
-		logger     = logrus.NewEntry(l)
-		cacher     = memory.NewCache(5*time.Minute, 10*time.Minute, logger)
-		storeCache = cache.NewStore(logger, cacher, store)
-
-		ctx = context.Background()
-
-		flag, err = storeCache.CreateFlag(ctx, &flipt.CreateFlagRequest{
-			Key:         b.Name(),
-			Name:        "foo",
-			Description: "bar",
-			Enabled:     true,
-		})
-	)
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	_, err = storeCache.CreateVariant(ctx, &flipt.CreateVariantRequest{
-		FlagKey: flag.Key,
-		Key:     "baz",
-	})
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	var f *flipt.Flag
-
-	// warm the cache
-	f, _ = storeCache.GetFlag(context.TODO(), flag.Key)
-
-	b.ResetTimer()
-
-	b.Run("get-flag-cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			f, _ = storeCache.GetFlag(context.TODO(), flag.Key)
 		}
 
 		benchFlag = f
