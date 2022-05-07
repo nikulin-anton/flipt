@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/markphelps/flipt/storage/cache"
+	"github.com/markphelps/flipt/server/cache"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
