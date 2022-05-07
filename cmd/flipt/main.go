@@ -31,8 +31,7 @@ import (
 	pb "github.com/markphelps/flipt/rpc/flipt"
 	"github.com/markphelps/flipt/server"
 	"github.com/markphelps/flipt/storage"
-	"github.com/markphelps/flipt/storage/cache"
-	"github.com/markphelps/flipt/storage/cache/memory"
+
 	"github.com/markphelps/flipt/storage/sql"
 	"github.com/markphelps/flipt/storage/sql/mysql"
 	"github.com/markphelps/flipt/storage/sql/postgres"
@@ -383,14 +382,6 @@ func run(_ []string) error {
 			store = postgres.NewStore(db)
 		case sql.MySQL:
 			store = mysql.NewStore(db)
-		}
-
-		if cfg.Cache.Enabled {
-			switch cfg.Cache.Backend {
-			case config.CacheMemory:
-				cacher := memory.NewCache(cfg.Cache.TTL, cfg.Cache.Memory.EvictionInterval, logger)
-				store = cache.NewStore(logger, cacher, store)
-			}
 		}
 
 		logger = logger.WithField("store", store.String())
