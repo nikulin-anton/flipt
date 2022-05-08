@@ -2,86 +2,55 @@ package memory
 
 import (
 	"context"
-	"sync"
-	"time"
+	"sync/atomic"
 
+	"github.com/markphelps/flipt/config"
 	"github.com/markphelps/flipt/server/cache"
 	gocache "github.com/patrickmn/go-cache"
-	"github.com/sirupsen/logrus"
 )
 
-// InMemoryCache wraps gocache.Cache in order to implement Cacher
-type InMemoryCache struct {
-	c             *gocache.Cache
-	mu            sync.RWMutex
-	itemCount     int64
-	missTotal     int64
-	hitTotal      int64
-	evictionTotal int64
+// Cache wraps gocache.Cache in order to implement Cacher
+type Cache struct {
+	c         *gocache.Cache
+	missTotal uint64
+	hitTotal  uint64
 }
 
-// NewCache creates a new InMemoryCache with the provided ttl and evictionInterval
-func NewCache(ttl time.Duration, evictionInterval time.Duration, logger logrus.FieldLogger) *InMemoryCache {
-	logger = logger.WithField("cache", "memory")
-
-	var (
-		c     = gocache.New(ttl, evictionInterval)
-		cache = &InMemoryCache{c: c}
-	)
-
-	c.OnEvicted(func(s string, _ interface{}) {
-		cache.mu.Lock()
-		cache.itemCount--
-		cache.evictionTotal++
-		cache.mu.Unlock()
-		logger.Debugf("evicted key: %q", s)
-	})
-
-	return cache
+// NewCache creates a new in memory cache with the provided cache config
+func NewCache(cfg config.CacheConfig) *Cache {
+	c := gocache.New(cfg.TTL, cfg.Memory.EvictionInterval)
+	return &Cache{c: c}
 }
 
-func (i *InMemoryCache) Get(_ context.Context, key string) (interface{}, bool, error) {
-	v, ok := i.c.Get(key)
+func (c *Cache) Get(_ context.Context, key string) (interface{}, bool, error) {
+	v, ok := c.c.Get(key)
 	if !ok {
-		i.mu.Lock()
-		i.missTotal++
-		i.mu.Unlock()
+		atomic.AddUint64(&c.missTotal, 1)
 		return nil, false, nil
 	}
 
-	i.mu.Lock()
-	i.hitTotal++
-	i.mu.Unlock()
+	atomic.AddUint64(&c.hitTotal, 1)
 	return v, true, nil
 }
 
-func (i *InMemoryCache) Set(_ context.Context, key string, value interface{}) error {
-	i.c.SetDefault(key, value)
-	i.mu.Lock()
-	i.itemCount++
-	i.mu.Unlock()
+func (c *Cache) Set(_ context.Context, key string, value interface{}) error {
+	c.c.SetDefault(key, value)
 	return nil
 }
 
-func (i *InMemoryCache) Delete(_ context.Context, key string) error {
-	i.c.Delete(key)
-	i.mu.Lock()
-	i.itemCount--
-	i.mu.Unlock()
+func (c *Cache) Delete(_ context.Context, key string) error {
+	c.c.Delete(key)
 	return nil
 }
 
-func (i *InMemoryCache) String() string {
+func (c *Cache) String() string {
 	return "memory"
 }
 
-func (i *InMemoryCache) Stats() cache.Stats {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (c *Cache) Stats() cache.Stats {
 	return cache.Stats{
-		ItemCount:     i.itemCount,
-		MissTotal:     i.missTotal,
-		HitTotal:      i.hitTotal,
-		EvictionTotal: i.evictionTotal,
+		MissTotal:  c.missTotal,
+		HitTotal:   c.hitTotal,
+		ErrorTotal: 0,
 	}
 }
