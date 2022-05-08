@@ -65,12 +65,12 @@ func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationReque
 	cached, ok, err := s.cache.Get(ctx, key)
 	if err != nil {
 		// if error, log and continue to evaluate
-		logger.WithField("request", r).WithError(err).Error("getting from cache")
+		logger.WithError(err).Error("getting from cache")
 		return s.evaluate(ctx, r)
 	}
 
 	if !ok {
-		logger.WithField("request", r).Debug("evaluate cache miss")
+		logger.Debug("evaluate cache miss")
 		resp, err := s.evaluate(ctx, r)
 		if err != nil {
 			return resp, err
@@ -79,7 +79,7 @@ func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationReque
 		return resp, err
 	}
 
-	logger.WithField("request", r).Debug("evaluate cache hit")
+	logger.Debug("evaluate cache hit")
 	return cached.(*flipt.EvaluationResponse), nil
 }
 
