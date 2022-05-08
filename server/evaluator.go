@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -18,7 +20,7 @@ import (
 )
 
 // Evaluate evaluates a request for a given flag and entity
-func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
+func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (resp *flipt.EvaluationResponse, err error) {
 	s.logger.WithField("request", r).Debug("evaluate")
 	startTime := time.Now()
 
@@ -27,8 +29,16 @@ func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*fli
 		r.RequestId = uuid.Must(uuid.NewV4()).String()
 	}
 
-	resp, err := s.evaluate(ctx, r)
+	if s.cacheEnabled {
+		// check cache
+		resp, err = s.evaluateWithCache(ctx, r)
+	} else {
+		resp, err = s.evaluate(ctx, r)
+	}
+
 	if resp != nil {
+		resp.RequestId = r.RequestId
+		resp.Timestamp = timestamp.New(time.Now().UTC())
 		resp.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
 	}
 
@@ -38,6 +48,39 @@ func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*fli
 
 	s.logger.WithField("response", resp).Debug("evaluate")
 	return resp, nil
+}
+
+func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
+	var (
+		logger   = s.logger.WithField("request", r)
+		key, err = evaluationCacheKey(r)
+	)
+
+	if err != nil {
+		// if error, log and continue to evaluate
+		logger.WithError(err).Error("generating cache key")
+		return s.evaluate(ctx, r)
+	}
+
+	cached, ok, err := s.cache.Get(ctx, key)
+	if err != nil {
+		// if error, log and continue to evaluate
+		logger.WithField("request", r).WithError(err).Error("getting from cache")
+		return s.evaluate(ctx, r)
+	}
+
+	if !ok {
+		logger.WithField("request", r).Debug("evaluate cache miss")
+		resp, err := s.evaluate(ctx, r)
+		if err != nil {
+			return resp, err
+		}
+		err = s.cache.Set(ctx, key, resp)
+		return resp, err
+	}
+
+	logger.WithField("request", r).Debug("evaluate cache hit")
+	return cached.(*flipt.EvaluationResponse), nil
 }
 
 // BatchEvaluate evaluates a request for multiple flags and entities
@@ -50,12 +93,15 @@ func (s *Server) BatchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequ
 		r.RequestId = uuid.Must(uuid.NewV4()).String()
 	}
 
+	// TODO: batchEvaluation cache, need to first enforce a limit on the number of requests
+	// in the batch
 	resp, err := s.batchEvaluate(ctx, r)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp != nil {
+		resp.RequestId = r.RequestId
 		resp.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
 	}
 
@@ -64,13 +110,14 @@ func (s *Server) BatchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequ
 }
 
 func (s *Server) batchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequest) (*flipt.BatchEvaluationResponse, error) {
-	startTime := time.Now()
 	res := flipt.BatchEvaluationResponse{
-		RequestId: r.RequestId,
 		Responses: make([]*flipt.EvaluationResponse, 0, len(r.GetRequests())),
 	}
 
+	// TODO: we should change this to a native batch query instead of looping through
+	// each request individually
 	for _, flag := range r.GetRequests() {
+		// TODO: we also need to validate each request, we should likely do this in the validation middleware
 		f, err := s.evaluate(ctx, flag)
 		if err != nil {
 			var errnf errs.ErrNotFound
@@ -80,7 +127,6 @@ func (s *Server) batchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequ
 			return &res, err
 		}
 		f.RequestId = ""
-		f.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
 		res.Responses = append(res.Responses, f)
 	}
 
@@ -89,12 +135,10 @@ func (s *Server) batchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequ
 
 func (s *Server) evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
 	var (
-		ts   = timestamp.New(time.Now().UTC())
 		resp = &flipt.EvaluationResponse{
 			RequestId:      r.RequestId,
 			EntityId:       r.EntityId,
 			RequestContext: r.Context,
-			Timestamp:      ts,
 			FlagKey:        r.FlagKey,
 		}
 	)
@@ -264,6 +308,16 @@ func (s *Server) evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*fli
 	} // end rule loop
 
 	return resp, nil
+}
+
+func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
+	out, err := json.Marshal(r.GetContext())
+	if err != nil {
+		return "", err
+	}
+
+	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
+	return fmt.Sprintf("%x", md5.Sum([]byte(k))), nil //nolint:gosec
 }
 
 func crc32Num(entityID string, salt string) uint {
