@@ -387,7 +387,27 @@ func run(_ []string) error {
 
 		logger = logger.WithField("store", store.String())
 
-		var tracer opentracing.Tracer = &opentracing.NoopTracer{}
+		var opts []server.Option
+
+		if cfg.CacheConfig.Enabled {
+			var cacher cache.Cacher
+
+			switch cfg.CacheConfig.Backend {
+			case cfg.CacheMemory:
+				cacher = memory.NewCache(cfg.CacheConfig)
+			case cfg.CacheRedis:
+				// r := goredis.NewCache
+				cacher = redis.NewCache(cfg.CacheConfig, nil)
+			}
+
+			opts = append(opts, server.WithCache(cacher))
+		}
+
+		var (
+			srv = server.New(logger, store, opts...)
+
+			tracer opentracing.Tracer = &opentracing.NoopTracer{}
+		)
 
 		if cfg.Tracing.Jaeger.Enabled {
 			jaegerCfg := jaeger_config.Configuration{
@@ -415,10 +435,7 @@ func run(_ []string) error {
 
 		opentracing.SetGlobalTracer(tracer)
 
-		var (
-			grpcOpts []grpc.ServerOption
-			srv      = server.New(logger, store)
-		)
+		var grpcOpts []grpc.ServerOption
 
 		grpcOpts = append(grpcOpts, grpc_middleware.WithUnaryServerChain(
 			grpc_recovery.UnaryServerInterceptor(),
