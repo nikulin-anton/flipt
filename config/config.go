@@ -320,7 +320,6 @@ func Load(path string) (*Config, error) {
 	if viper.GetBool(cacheMemoryEnabled) {
 		cfg.Cache.Backend = CacheMemory
 		cfg.Cache.Enabled = true
-		// TODO: log deprecated
 	} else if viper.IsSet(cacheEnabled) {
 		cfg.Cache.Enabled = viper.GetBool(cacheEnabled)
 		if viper.IsSet(cacheBackend) {
@@ -335,7 +334,6 @@ func Load(path string) (*Config, error) {
 	case CacheMemory:
 		if viper.IsSet(cacheMemoryExpiration) {
 			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
-			// TODO: log deprecated
 		}
 		if viper.IsSet(cacheMemoryEvictionInterval) {
 			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)

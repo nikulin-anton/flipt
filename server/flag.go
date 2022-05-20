@@ -11,6 +11,7 @@ import (
 // GetFlag gets a flag
 func (s *Server) GetFlag(ctx context.Context, r *flipt.GetFlagRequest) (*flipt.Flag, error) {
 	s.logger.WithField("request", r).Debug("get flag")
+	// TODO: get with cache
 	flag, err := s.store.GetFlag(ctx, r.Key)
 	s.logger.WithField("response", flag).Debug("get flag")
 	return flag, err
