@@ -23,7 +23,7 @@ jobs:
         run: docker pull ghcr.io/markphelps/flipt:${{ steps.fetch-latest-release.outputs.latest-release }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.2.5
+        uses: aquasecurity/trivy-action@0.3.0
         with:
           image-ref: "docker.io/markphelps/flipt:${{ steps.fetch-latest-release.outputs.latest-release }}"
           format: "template"
@@ -31,6 +31,6 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v1
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: "trivy-results.sarif"
