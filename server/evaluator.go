@@ -79,7 +79,7 @@ func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationReque
 		return resp, err
 	}
 
-	logger.Debug("evaluate cache hit")
+	logger.Debugf("evaluate cache hit: %+v", cached)
 	return cached.(*flipt.EvaluationResponse), nil
 }
 
