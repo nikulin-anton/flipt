@@ -60,6 +60,8 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	grpc_gateway "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 
+	goredis_cache "github.com/go-redis/cache/v8"
+	goredis "github.com/go-redis/redis/v8"
 	otgrpc "github.com/opentracing-contrib/go-grpc"
 	"github.com/opentracing/opentracing-go"
 	jaeger_config "github.com/uber/jaeger-client-go/config"
@@ -231,6 +233,9 @@ func run(_ []string) error {
 
 	defer signal.Stop(interrupt)
 
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
 	var (
 		isRelease       = isRelease()
 		updateAvailable bool
@@ -390,16 +395,28 @@ func run(_ []string) error {
 
 		var opts []server.Option
 
-		if cfg.CacheConfig.Enabled {
+		if cfg.Cache.Enabled {
 			var cacher cache.Cacher
 
-			switch cfg.CacheConfig.Backend {
-			case cfg.CacheMemory:
-				cacher = memory.NewCache(cfg.CacheConfig)
-			case cfg.CacheRedis:
-				// r := goredis.NewCache
-				cacher = redis.NewCache(cfg.CacheConfig, nil)
+			switch cfg.Cache.Backend {
+			case config.CacheMemory:
+				cacher = memory.NewCache(cfg.Cache)
+			case config.CacheRedis:
+				rdb := goredis.NewClient(&goredis.Options{
+					Addr:     fmt.Sprintf("%s:%d", cfg.Cache.Redis.Host, cfg.Cache.Redis.Port),
+					Password: "", // no password set
+					DB:       cfg.Cache.Redis.DB,
+				})
+
+				defer rdb.Shutdown(shutdownCtx)
+
+				cacher = redis.NewCache(cfg.Cache, goredis_cache.New(&goredis_cache.Options{
+					Redis: rdb,
+				}))
 			}
+
+			logger = logger.WithField("cache", cacher.String())
+			logger.Debug("cache enabled")
 
 			opts = append(opts, server.WithCache(cacher))
 		}
@@ -609,9 +626,6 @@ func run(_ []string) error {
 	l.Info("shutting down...")
 
 	cancel()
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
 
 	if httpServer != nil {
 		_ = httpServer.Shutdown(shutdownCtx)

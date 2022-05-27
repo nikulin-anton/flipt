@@ -70,11 +70,19 @@ type MemoryCacheConfig struct {
 	EvictionInterval time.Duration `json:"evictionInterval,omitempty"`
 }
 
+type RedisCacheConfig struct {
+	Host     string `json:"host,omitempty"`
+	Port     int    `json:"port,omitempty"`
+	Password string `json:"password,omitempty"`
+	DB       int    `json:"db,omitempty"`
+}
+
 type CacheConfig struct {
 	Enabled bool              `json:"enabled"`
 	TTL     time.Duration     `json:"ttl,omitempty"`
 	Backend CacheBackend      `json:"backend,omitempty"`
 	Memory  MemoryCacheConfig `json:"memory,omitempty"`
+	Redis   RedisCacheConfig  `json:"redis,omitempty"`
 }
 
 type ServerConfig struct {
@@ -194,6 +202,12 @@ func Default() *Config {
 			Memory: MemoryCacheConfig{
 				EvictionInterval: 5 * time.Minute,
 			},
+			Redis: RedisCacheConfig{
+				Host:     "localhost",
+				Port:     6379,
+				Password: "",
+				DB:       0,
+			},
 		},
 
 		Server: ServerConfig{
@@ -245,7 +259,10 @@ const (
 	cacheMemoryEnabled          = "cache.memory.enabled"    // deprecated in v1.9.0
 	cacheMemoryExpiration       = "cache.memory.expiration" // deprecated in v1.9.0
 	cacheMemoryEvictionInterval = "cache.memory.eviction_interval"
-	cacheRedisURL               = "cache.redis.url"
+	cacheRedisHost              = "cache.redis.host"
+	cacheRedisPort              = "cache.redis.port"
+	cacheRedisPassword          = "cache.redis.password"
+	cacheRedisDB                = "cache.redis.db"
 
 	// Server
 	serverHost      = "server.host"
@@ -317,9 +334,17 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Cache
-	if viper.GetBool(cacheMemoryEnabled) {
+	if viper.GetBool(cacheMemoryEnabled) { // handle deprecated memory config
 		cfg.Cache.Backend = CacheMemory
 		cfg.Cache.Enabled = true
+
+		if viper.IsSet(cacheMemoryExpiration) {
+			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
+		}
+		if viper.IsSet(cacheMemoryEvictionInterval) {
+			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
+		}
+
 	} else if viper.IsSet(cacheEnabled) {
 		cfg.Cache.Enabled = viper.GetBool(cacheEnabled)
 		if viper.IsSet(cacheBackend) {
@@ -330,13 +355,25 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
-	switch cfg.Cache.Backend {
-	case CacheMemory:
-		if viper.IsSet(cacheMemoryExpiration) {
-			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
-		}
-		if viper.IsSet(cacheMemoryEvictionInterval) {
-			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
+	if cfg.Cache.Enabled {
+		switch cfg.Cache.Backend {
+		case CacheRedis:
+			if viper.IsSet(cacheRedisHost) {
+				cfg.Cache.Redis.Host = viper.GetString(cacheRedisHost)
+			}
+			if viper.IsSet(cacheRedisPort) {
+				cfg.Cache.Redis.Port = viper.GetInt(cacheRedisPort)
+			}
+			if viper.IsSet(cacheRedisPassword) {
+				cfg.Cache.Redis.Password = viper.GetString(cacheRedisPassword)
+			}
+			if viper.IsSet(cacheRedisDB) {
+				cfg.Cache.Redis.DB = viper.GetInt(cacheRedisDB)
+			}
+		case CacheMemory:
+			if viper.IsSet(cacheMemoryEvictionInterval) {
+				cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
+			}
 		}
 	}
 
