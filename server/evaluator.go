@@ -316,7 +316,7 @@ func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
 		return "", err
 	}
 
-	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
+	k := fmt.Sprintf("flipt:e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
 	return fmt.Sprintf("%x", md5.Sum([]byte(k))), nil //nolint:gosec
 }
 
