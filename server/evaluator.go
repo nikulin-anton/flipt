@@ -75,12 +75,22 @@ func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationReque
 		if err != nil {
 			return resp, err
 		}
-		err = s.cache.Set(ctx, key, resp)
+		data, err := proto.Marshal(resp)
+		if err != nil {
+			return resp, err
+		}
+		err = s.cache.Set(ctx, key, data)
 		return resp, err
 	}
 
-	logger.Debugf("evaluate cache hit: %+v", cached)
-	return cached.(*flipt.EvaluationResponse), nil
+	resp := &flipt.EvaluationResponse{}
+	if err := proto.Unmarshal(cached, resp); err != nil {
+		logger.WithError(err).Error("unmarshalling from cache")
+		return s.evaluate(ctx, r)
+	}
+
+	logger.Debugf("evaluate cache hit: %+v", resp)
+	return resp, nil
 }
 
 // BatchEvaluate evaluates a request for multiple flags and entities
