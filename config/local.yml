@@ -8,14 +8,18 @@ log:
 #   enabled: false
 #   allowed_origins: "*"
 
-# cache:
-#   enabled: false
-#   backend: memory
-#   ttl: 30s # Items Expire After 30s
-#   memory:
-#     eviction_interval: 5m # Evict Expired Items Every 5m
+cache:
+  enabled: true
+  backend: "redis"
+  ttl: 30s # items expire after 30s
+  redis:
+    host: "localhost"
+    port: 6379
 
-# server:
+  # memory:
+  #   eviction_interval: 5m # evict expired items every 5m
+
+# # server:
 #   protocol: http
 #   host: 0.0.0.0
 #   https_port: 443

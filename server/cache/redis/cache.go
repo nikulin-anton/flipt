@@ -23,8 +23,10 @@ func NewCache(cfg config.CacheConfig, c *redis.Cache) *Cache {
 	return &Cache{cfg: cfg, c: c}
 }
 
-func (c *Cache) Get(ctx context.Context, key string) (i interface{}, b bool, err error) {
-	if err := c.c.Get(ctx, key, i); err != nil {
+func (c *Cache) Get(ctx context.Context, key string) ([]byte, bool, error) {
+	value := []byte{}
+
+	if err := c.c.Get(ctx, key, &value); err != nil {
 		if errors.Is(err, redis.ErrCacheMiss) {
 			atomic.AddUint64(&c.missTotal, 1)
 			return nil, false, nil
@@ -35,10 +37,10 @@ func (c *Cache) Get(ctx context.Context, key string) (i interface{}, b bool, err
 	}
 
 	atomic.AddUint64(&c.hitTotal, 1)
-	return i, true, nil
+	return value, true, nil
 }
 
-func (c *Cache) Set(ctx context.Context, key string, value interface{}) error {
+func (c *Cache) Set(ctx context.Context, key string, value []byte) error {
 	if err := c.c.Set(&redis.Item{
 		Ctx:   ctx,
 		Key:   key,

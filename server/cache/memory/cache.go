@@ -22,18 +22,19 @@ func NewCache(cfg config.CacheConfig) *Cache {
 	return &Cache{c: c}
 }
 
-func (c *Cache) Get(_ context.Context, key string) (interface{}, bool, error) {
+func (c *Cache) Get(_ context.Context, key string) ([]byte, bool, error) {
 	v, ok := c.c.Get(key)
 	if !ok {
 		atomic.AddUint64(&c.missTotal, 1)
 		return nil, false, nil
 	}
 
+	value := v.([]byte)
 	atomic.AddUint64(&c.hitTotal, 1)
-	return v, true, nil
+	return value, true, nil
 }
 
-func (c *Cache) Set(_ context.Context, key string, value interface{}) error {
+func (c *Cache) Set(_ context.Context, key string, value []byte) error {
 	c.c.SetDefault(key, value)
 	return nil
 }
