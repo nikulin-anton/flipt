@@ -104,8 +104,6 @@ func (s *Server) BatchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequ
 		r.RequestId = uuid.Must(uuid.NewV4()).String()
 	}
 
-	// TODO: batchEvaluation cache, need to first enforce a limit on the number of requests
-	// in the batch
 	resp, err := s.batchEvaluate(ctx, r)
 	if err != nil {
 		return nil, err
@@ -327,8 +325,8 @@ func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
 		return "", err
 	}
 
-	k := fmt.Sprintf("flipt:e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
-	return fmt.Sprintf("%x", md5.Sum([]byte(k))), nil //nolint:gosec
+	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
+	return fmt.Sprintf("%s:%x", "flipt", md5.Sum([]byte(k))), nil //nolint:gosec
 }
 
 func crc32Num(entityID string, salt string) uint {

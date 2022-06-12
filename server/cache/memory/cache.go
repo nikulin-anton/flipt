@@ -29,9 +29,8 @@ func (c *Cache) Get(_ context.Context, key string) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	value := v.([]byte)
 	atomic.AddUint64(&c.hitTotal, 1)
-	return value, true, nil
+	return v.([]byte), true, nil
 }
 
 func (c *Cache) Set(_ context.Context, key string, value []byte) error {

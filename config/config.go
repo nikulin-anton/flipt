@@ -198,7 +198,7 @@ func Default() *Config {
 		Cache: CacheConfig{
 			Enabled: false,
 			Backend: CacheMemory,
-			TTL:     30 * time.Second,
+			TTL:     1 * time.Minute,
 			Memory: MemoryCacheConfig{
 				EvictionInterval: 5 * time.Minute,
 			},
