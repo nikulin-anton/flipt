@@ -12,7 +12,7 @@
 # cache:
 #   enabled: false
 #   backend: memory
-#   ttl: 30s # Items Expire After 30s
+#   ttl: 60s
 #   memory:
 #     eviction_interval: 5m # Evict Expired Items Every 5m
 

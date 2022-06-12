@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -291,28 +293,38 @@ func run(_ []string) error {
 		cfg.Meta.TelemetryEnabled = false
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+
 	if cfg.Meta.TelemetryEnabled {
+		// initialize local state directory if it doesn't exist
 		if err := initLocalState(); err != nil {
 			l.Warnf("error getting local state directory: %s, disabling telemetry: %s", cfg.Meta.StateDirectory, err)
 			cfg.Meta.TelemetryEnabled = false
 		} else {
 			l.Debugf("local state directory exists: %s", cfg.Meta.StateDirectory)
 		}
-	}
 
-	g, ctx := errgroup.WithContext(ctx)
+		var (
+			reportInterval = 4 * time.Hour
+			ticker         = time.NewTicker(reportInterval)
+		)
 
-	if cfg.Meta.TelemetryEnabled {
-		reportInterval := 4 * time.Hour
-
-		ticker := time.NewTicker(reportInterval)
 		defer ticker.Stop()
 
+		// start telemetry
 		g.Go(func() error {
 			logger := l.WithField("component", "telemetry")
 
+			// don't log from analytics package
+			analyticsLogger := func() analytics.Logger {
+				stdLogger := log.Default()
+				stdLogger.SetOutput(ioutil.Discard)
+				return analytics.StdLogger(stdLogger)
+			}
+
 			client, err := analytics.NewWithConfig(analyticsKey, analytics.Config{
 				BatchSize: 1,
+				Logger:    analyticsLogger(),
 			})
 			if err != nil {
 				logger.Warnf("error initializing telemetry client: %s", err)
