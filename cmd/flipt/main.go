@@ -416,7 +416,7 @@ func run(_ []string) error {
 			case config.CacheRedis:
 				rdb := goredis.NewClient(&goredis.Options{
 					Addr:     fmt.Sprintf("%s:%d", cfg.Cache.Redis.Host, cfg.Cache.Redis.Port),
-					Password: "", // no password set
+					Password: cfg.Cache.Redis.Password,
 					DB:       cfg.Cache.Redis.DB,
 				})
 

@@ -109,7 +109,7 @@ tasks:
   fmt:
     desc: Run goimports
     cmds:
-      - goimports -w .
+      - goimports -w $(go list -f {{`{{.Dir}}`}} ./... | grep -v /rpc/)
 
   lint:
     desc: Run the linters
