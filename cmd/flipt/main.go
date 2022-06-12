@@ -295,7 +295,7 @@ func run(_ []string) error {
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	if cfg.Meta.TelemetryEnabled {
+	if cfg.Meta.TelemetryEnabled && isRelease {
 		// initialize local state directory if it doesn't exist
 		if err := initLocalState(); err != nil {
 			l.Warnf("error getting local state directory: %s, disabling telemetry: %s", cfg.Meta.StateDirectory, err)
