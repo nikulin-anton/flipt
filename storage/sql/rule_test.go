@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
-	"go.flipt.io/flipt/storage/cache"
-	"go.flipt.io/flipt/storage/cache/memory"
 )
 
 func TestGetRule(t *testing.T) {
