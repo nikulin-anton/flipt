@@ -505,7 +505,7 @@ func run(_ []string) error {
 			//
 			// See: rpc/flipt/marshal.go
 			//
-			// See: https://go.flipt.io/flipt/issues/664
+			// See: https://github.com/markphelps/flipt/issues/664
 			muxOpts = []grpc_gateway.ServeMuxOption{
 				grpc_gateway.WithMarshalerOption(grpc_gateway.MIMEWildcard, pb.NewV1toV2MarshallerAdapter()),
 			}

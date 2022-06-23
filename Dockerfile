@@ -6,8 +6,10 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
+    ca-certificates \
     curl \
     gnupg \
+    silversearcher-ag \
     sudo \
     openssh-server \
     postgresql-client && \
