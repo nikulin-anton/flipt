@@ -1,16 +1,47 @@
-package server
+package cache
 
 import (
 	"context"
 
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/mock"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
 )
 
 var (
-	_ storage.Store = &storeMock{}
+	l, _   = test.NewNullLogger()
+	logger = logrus.NewEntry(l)
 )
+
+// cacherSpy is a simple in memory map that acts as a cache
+// and records interactions for tests
+type cacherSpy struct {
+	mock.Mock
+}
+
+func (s *cacherSpy) Get(ctx context.Context, key string) (interface{}, bool, error) {
+	args := s.Called(ctx, key)
+	return args.Get(0), args.Bool(1), args.Error(2)
+}
+
+func (s *cacherSpy) Set(ctx context.Context, key string, value interface{}) error {
+	args := s.Called(ctx, key, value)
+	return args.Error(0)
+}
+
+func (s *cacherSpy) Delete(ctx context.Context, key string) error {
+	args := s.Called(ctx, key)
+	return args.Error(0)
+}
+
+func (s *cacherSpy) Flush(ctx context.Context) error {
+	args := s.Called(ctx)
+	return args.Error(0)
+}
+
+var _ storage.Store = &storeMock{}
 
 type storeMock struct {
 	mock.Mock

@@ -4,8 +4,24 @@ import (
 	"context"
 	"testing"
 
-	flipt "github.com/markphelps/flipt/rpc/flipt"
-	"github.com/markphelps/flipt/storage"
+<<<<<<< HEAD
+	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/storage"
+||||||| b907577
+	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/storage"
+	"go.flipt.io/flipt/storage/cache"
+	"go.flipt.io/flipt/storage/cache/memory"
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
+=======
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
+	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/storage"
+	"go.flipt.io/flipt/storage/cache"
+	"go.flipt.io/flipt/storage/cache/memory"
+>>>>>>> main
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"

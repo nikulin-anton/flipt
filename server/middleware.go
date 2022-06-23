@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	errs "github.com/markphelps/flipt/errors"
-	flipt "github.com/markphelps/flipt/rpc/flipt"
+	errs "go.flipt.io/flipt/errors"
+	flipt "go.flipt.io/flipt/rpc/flipt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

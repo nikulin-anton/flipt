@@ -1,9 +1,9 @@
 package server
 
 import (
-	flipt "github.com/markphelps/flipt/rpc/flipt"
-	"github.com/markphelps/flipt/server/cache"
-	"github.com/markphelps/flipt/storage"
+	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/server/cache"
+	"go.flipt.io/flipt/storage"
 
 	"github.com/sirupsen/logrus"
 )
