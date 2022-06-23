@@ -22,6 +22,8 @@ tasks:
     deps: [assets:deps]
     cmds:
       - cd ui && yarn build
+    vars:
+      NODE_OPTIONS: --openssl-legacy-provider
     sources:
       - ./ui/static/*
       - ./ui/src/**/*
