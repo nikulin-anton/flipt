@@ -31,20 +31,20 @@ func (s *Server) getFlagWithCache(ctx context.Context, r *flipt.GetFlagRequest) 
 	)
 
 	if err != nil {
-		// if error, log and continue to evaluate
+		// if error, log and continue without cache
 		logger.WithError(err).Error("generating cache key")
 		return s.store.GetFlag(ctx, r.Key)
 	}
 
 	cached, ok, err := s.cache.Get(ctx, key)
 	if err != nil {
-		// if error, log and continue to evaluate
+		// if error, log and continue without cache
 		logger.WithError(err).Error("getting from cache")
 		return s.store.GetFlag(ctx, r.Key)
 	}
 
 	if !ok {
-		logger.Debug("evaluate cache miss")
+		logger.Debug("flag cache miss")
 		flag, err := s.store.GetFlag(ctx, r.Key)
 		if err != nil {
 			return flag, err
@@ -63,7 +63,7 @@ func (s *Server) getFlagWithCache(ctx context.Context, r *flipt.GetFlagRequest) 
 		return s.store.GetFlag(ctx, r.Key)
 	}
 
-	logger.Debugf("evaluate cache hit: %+v", flag)
+	logger.Debugf("flag cache hit: %+v", flag)
 	return flag, nil
 }
 
