@@ -18,8 +18,9 @@ func TestSet(t *testing.T) {
 	var (
 		c   = NewCache(config.CacheConfig{})
 		ctx = context.Background()
-		err = c.Set(ctx, "key", []byte("value"))
 	)
+
+	err := c.Set(ctx, "key", []byte("value"))
 	assert.NoError(t, err)
 }
 
@@ -27,8 +28,9 @@ func TestGet(t *testing.T) {
 	var (
 		c   = NewCache(config.CacheConfig{})
 		ctx = context.Background()
-		err = c.Set(ctx, "key", []byte("value"))
 	)
+
+	err := c.Set(ctx, "key", []byte("value"))
 	assert.NoError(t, err)
 
 	v, ok, err := c.Get(ctx, "key")
@@ -60,8 +62,9 @@ func TestDelete(t *testing.T) {
 	var (
 		c   = NewCache(config.CacheConfig{})
 		ctx = context.Background()
-		err = c.Set(ctx, "key", []byte("value"))
 	)
+
+	err := c.Set(ctx, "key", []byte("value"))
 	assert.NoError(t, err)
 
 	v, ok, err := c.Get(ctx, "key")
