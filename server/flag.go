@@ -25,26 +25,17 @@ func (s *Server) GetFlag(ctx context.Context, r *flipt.GetFlagRequest) (flag *fl
 }
 
 func (s *Server) getFlagWithCache(ctx context.Context, r *flipt.GetFlagRequest) (*flipt.Flag, error) {
-	var (
-		logger   = s.logger.WithField("request", r)
-		key, err = flagCacheKey(r)
-	)
-
-	if err != nil {
-		// if error, log and continue without cache
-		logger.WithError(err).Error("generating cache key")
-		return s.store.GetFlag(ctx, r.Key)
-	}
+	key := flagCacheKey(r)
 
 	cached, ok, err := s.cache.Get(ctx, key)
 	if err != nil {
 		// if error, log and continue without cache
-		logger.WithError(err).Error("getting from cache")
+		s.logger.WithError(err).Error("getting from cache")
 		return s.store.GetFlag(ctx, r.Key)
 	}
 
 	if !ok {
-		logger.Debug("flag cache miss")
+		s.logger.Debug("flag cache miss")
 		flag, err := s.store.GetFlag(ctx, r.Key)
 		if err != nil {
 			return flag, err
@@ -59,11 +50,11 @@ func (s *Server) getFlagWithCache(ctx context.Context, r *flipt.GetFlagRequest) 
 
 	flag := &flipt.Flag{}
 	if err := proto.Unmarshal(cached, flag); err != nil {
-		logger.WithError(err).Error("unmarshalling from cache")
+		s.logger.WithError(err).Error("unmarshalling from cache")
 		return s.store.GetFlag(ctx, r.Key)
 	}
 
-	logger.Debugf("flag cache hit: %+v", flag)
+	s.logger.Debugf("flag cache hit: %+v", flag)
 	return flag, nil
 }
 
@@ -99,6 +90,13 @@ func (s *Server) UpdateFlag(ctx context.Context, r *flipt.UpdateFlagRequest) (*f
 	s.logger.WithField("request", r).Debug("update flag")
 	flag, err := s.store.UpdateFlag(ctx, r)
 	s.logger.WithField("response", flag).Debug("update flag")
+
+	if s.cacheEnabled {
+		if err := s.cache.Delete(ctx, flagCacheKey(r)); err != nil {
+			s.logger.WithError(err).Error("deleting from cache")
+		}
+	}
+
 	return flag, err
 }
 
@@ -108,6 +106,13 @@ func (s *Server) DeleteFlag(ctx context.Context, r *flipt.DeleteFlagRequest) (*e
 	if err := s.store.DeleteFlag(ctx, r); err != nil {
 		return nil, err
 	}
+
+	if s.cacheEnabled {
+		if err := s.cache.Delete(ctx, flagCacheKey(r)); err != nil {
+			s.logger.WithError(err).Error("deleting from cache")
+		}
+	}
+
 	return &empty.Empty{}, nil
 }
 
@@ -115,6 +120,13 @@ func (s *Server) DeleteFlag(ctx context.Context, r *flipt.DeleteFlagRequest) (*e
 func (s *Server) CreateVariant(ctx context.Context, r *flipt.CreateVariantRequest) (*flipt.Variant, error) {
 	s.logger.WithField("request", r).Debug("create variant")
 	variant, err := s.store.CreateVariant(ctx, r)
+
+	if s.cacheEnabled {
+		if err := s.cache.Delete(ctx, variantFlagCacheKey(r)); err != nil {
+			s.logger.WithError(err).Error("deleting from cache")
+		}
+	}
+
 	s.logger.WithField("response", variant).Debug("create variant")
 	return variant, err
 }
@@ -123,6 +135,13 @@ func (s *Server) CreateVariant(ctx context.Context, r *flipt.CreateVariantReques
 func (s *Server) UpdateVariant(ctx context.Context, r *flipt.UpdateVariantRequest) (*flipt.Variant, error) {
 	s.logger.WithField("request", r).Debug("update variant")
 	variant, err := s.store.UpdateVariant(ctx, r)
+
+	if s.cacheEnabled {
+		if err := s.cache.Delete(ctx, variantFlagCacheKey(r)); err != nil {
+			s.logger.WithError(err).Error("deleting from cache")
+		}
+	}
+
 	s.logger.WithField("response", variant).Debug("update variant")
 	return variant, err
 }
@@ -133,10 +152,30 @@ func (s *Server) DeleteVariant(ctx context.Context, r *flipt.DeleteVariantReques
 	if err := s.store.DeleteVariant(ctx, r); err != nil {
 		return nil, err
 	}
+
+	if s.cacheEnabled {
+		if err := s.cache.Delete(ctx, variantFlagCacheKey(r)); err != nil {
+			s.logger.WithError(err).Error("deleting from cache")
+		}
+	}
+
 	return &empty.Empty{}, nil
 }
 
-func flagCacheKey(r *flipt.GetFlagRequest) (string, error) {
-	k := fmt.Sprintf("f:%s", r.GetKey())
-	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))), nil //nolint:gosec
+type flagKeyer interface {
+	GetKey() string
+}
+
+type variantFlagKeyger interface {
+	GetFlagKey() string
+}
+
+func flagCacheKey(keyer flagKeyer) string {
+	k := fmt.Sprintf("f:%s", keyer.GetKey())
+	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))) //nolint:gosec
+}
+
+func variantFlagCacheKey(keyer variantFlagKeyger) string {
+	k := fmt.Sprintf("f:%s", keyer.GetFlagKey())
+	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))) //nolint:gosec
 }
