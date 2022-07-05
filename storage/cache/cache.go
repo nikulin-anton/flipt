@@ -19,7 +19,5 @@ type Cacher interface {
 	Set(ctx context.Context, key string, value interface{}) error
 	// Delete removes a value from the cache
 	Delete(ctx context.Context, key string) error
-	// Flush removes all values from the cache
-	Flush(ctx context.Context) error
 	fmt.Stringer
 }

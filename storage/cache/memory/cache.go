@@ -48,13 +48,6 @@ var (
 		Name:      "eviction_total",
 		Help:      "The number of times an item is evicted from the cache",
 	}, []string{"cache"})
-
-	cacheFlushTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Subsystem: subsystem,
-		Name:      "flush_total",
-		Help:      "The number of times the cache is flushed",
-	}, []string{"cache"})
 )
 
 // NewCache creates a new InMemoryCache with the provided expiration and evictionInterval
@@ -91,13 +84,6 @@ func (i *InMemoryCache) Set(_ context.Context, key string, value interface{}) er
 func (i *InMemoryCache) Delete(_ context.Context, key string) error {
 	i.c.Delete(key)
 	cacheItemCount.WithLabelValues("memory").Dec()
-	return nil
-}
-
-func (i *InMemoryCache) Flush(_ context.Context) error {
-	i.c.Flush()
-	cacheItemCount.WithLabelValues("memory").Set(0)
-	cacheFlushTotal.WithLabelValues("memory").Inc()
 	return nil
 }
 
