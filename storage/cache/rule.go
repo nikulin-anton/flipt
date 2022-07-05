@@ -13,7 +13,10 @@ const ruleCachePrefix = "rule:"
 // GetRule returns the rule from the cache if it exists; otherwise it delegates to the underlying store
 // caching the result if no error
 func (c *Store) GetRule(ctx context.Context, id string) (*flipt.Rule, error) {
-	key := ruleCachePrefix + id
+	var (
+		key   = ruleCachePrefix + id
+		cache = c.cache.String()
+	)
 
 	// check if rule exists in cache
 	data, ok, err := c.cache.Get(ctx, key)

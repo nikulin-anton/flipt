@@ -13,7 +13,10 @@ const flagCachePrefix = "flag:"
 // GetFlag returns the flag from the cache if it exists; otherwise it delegates to the underlying store
 // caching the result if no error
 func (c *Store) GetFlag(ctx context.Context, k string) (*flipt.Flag, error) {
-	key := flagCachePrefix + k
+	var (
+		key   = flagCachePrefix + k
+		cache = c.cache.String()
+	)
 
 	// check if flag exists in cache
 	data, ok, err := c.cache.Get(ctx, key)
