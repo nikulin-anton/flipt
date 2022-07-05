@@ -4,12 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/test"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
-	"go.flipt.io/flipt/storage/cache"
-	"go.flipt.io/flipt/storage/cache/memory"
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/markphelps/flipt/config"
-	"github.com/markphelps/flipt/server/cache"
 	gocache "github.com/patrickmn/go-cache"
+	"go.flipt.io/flipt/config"
+	"go.flipt.io/flipt/server/cache"
 )
 
 // Cache wraps gocache.Cache in order to implement Cacher

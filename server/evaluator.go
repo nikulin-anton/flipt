@@ -16,6 +16,7 @@ import (
 	errs "go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
+	"google.golang.org/protobuf/proto"
 	timestamp "google.golang.org/protobuf/types/known/timestamppb"
 )
 

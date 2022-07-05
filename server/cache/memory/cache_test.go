@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/markphelps/flipt/config"
 	"github.com/stretchr/testify/assert"
+	"go.flipt.io/flipt/config"
 )
 
 func TestNewCache(t *testing.T) {

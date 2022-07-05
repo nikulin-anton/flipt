@@ -8,6 +8,8 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/go-chi/chi/v5 v5.0.8-0.20220103191336-b750c805b4ee
 	github.com/go-chi/cors v1.2.1
+	github.com/go-redis/cache/v8 v8.4.3
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang-migrate/migrate v3.5.4+incompatible
@@ -20,7 +22,7 @@ require (
 	github.com/luna-duclos/instrumentedsql v1.1.3
 	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20200611091901-487c5ec83473
 	github.com/mattn/go-sqlite3 v1.14.14
-	github.com/opentracing-contrib/go-grpc v0.0.0-20200813121455-4a6760c71486
+	github.com/opentracing-contrib/go-grpc v0.0.0-20210225150812-73cb765af46e
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/phyber/negroni-gzip v1.0.0
@@ -29,6 +31,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.8.0
+	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/xo/dburl v0.0.0-20200124232849-e9ec94f52bc3
 	go.flipt.io/flipt-grpc v1.0.0
@@ -62,6 +65,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
@@ -100,6 +104,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
+	golang.org/x/exp v0.0.0-20210916165020-5cb4fee858ee // indirect
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect

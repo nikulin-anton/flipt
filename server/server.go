@@ -1,11 +1,8 @@
 package server
 
 import (
-	"context"
-	"errors"
-
-	errs "go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/server/cache"
 	"go.flipt.io/flipt/storage"
 
 	"github.com/sirupsen/logrus"
