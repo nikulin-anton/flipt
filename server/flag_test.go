@@ -3,14 +3,11 @@ package server
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.flipt.io/flipt/config"
 	flipt "go.flipt.io/flipt/rpc/flipt"
-	"go.flipt.io/flipt/server/cache/memory"
 )
 
 func TestGetFlag(t *testing.T) {
@@ -134,37 +131,6 @@ func TestDeleteFlag(t *testing.T) {
 	assert.NotNil(t, got)
 }
 
-func TestDeleteFlag_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.DeleteFlagRequest{
-			Key: "key",
-		}
-	)
-
-	store.On("DeleteFlag", mock.Anything, req).Return(nil)
-
-	got, err := s.DeleteFlag(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 1, cacheSpy.deleteCalled)
-	assert.NotEmpty(t, cacheSpy.deleteKeys)
-}
-
 func TestCreateVariant(t *testing.T) {
 	var (
 		store = &storeMock{}
@@ -193,47 +159,6 @@ func TestCreateVariant(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, got)
-}
-
-func TestCreateVariant_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.CreateVariantRequest{
-			FlagKey:     "flagKey",
-			Key:         "key",
-			Name:        "name",
-			Description: "desc",
-		}
-	)
-
-	store.On("CreateVariant", mock.Anything, req).Return(&flipt.Variant{
-		Id:          "1",
-		FlagKey:     req.FlagKey,
-		Key:         req.Key,
-		Name:        req.Name,
-		Description: req.Description,
-		Attachment:  req.Attachment,
-	}, nil)
-
-	got, err := s.CreateVariant(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 1, cacheSpy.deleteCalled)
-	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
 func TestUpdateVariant(t *testing.T) {
@@ -267,48 +192,6 @@ func TestUpdateVariant(t *testing.T) {
 	assert.NotNil(t, got)
 }
 
-func TestUpdateVariant_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.UpdateVariantRequest{
-			Id:          "1",
-			FlagKey:     "flagKey",
-			Key:         "key",
-			Name:        "name",
-			Description: "desc",
-		}
-	)
-
-	store.On("UpdateVariant", mock.Anything, req).Return(&flipt.Variant{
-		Id:          req.Id,
-		FlagKey:     req.FlagKey,
-		Key:         req.Key,
-		Name:        req.Name,
-		Description: req.Description,
-		Attachment:  req.Attachment,
-	}, nil)
-
-	got, err := s.UpdateVariant(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 1, cacheSpy.deleteCalled)
-	assert.NotEmpty(t, cacheSpy.deleteKeys)
-}
-
 func TestDeleteVariant(t *testing.T) {
 	var (
 		store = &storeMock{}
@@ -327,35 +210,4 @@ func TestDeleteVariant(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, got)
-}
-
-func TestDeleteVariant_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.DeleteVariantRequest{
-			Id: "1",
-		}
-	)
-
-	store.On("DeleteVariant", mock.Anything, req).Return(nil)
-
-	got, err := s.DeleteVariant(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 1, cacheSpy.deleteCalled)
-	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }

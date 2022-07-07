@@ -2,7 +2,6 @@ package server
 
 import (
 	flipt "go.flipt.io/flipt/rpc/flipt"
-	"go.flipt.io/flipt/server/cache"
 	"go.flipt.io/flipt/storage"
 
 	"github.com/sirupsen/logrus"
@@ -16,10 +15,6 @@ type Option func(s *Server)
 type Server struct {
 	logger logrus.FieldLogger
 	store  storage.Store
-
-	cacheEnabled bool
-	cache        cache.Cacher
-
 	flipt.UnimplementedFliptServer
 }
 
@@ -37,11 +32,4 @@ func New(logger logrus.FieldLogger, store storage.Store, opts ...Option) *Server
 	}
 
 	return s
-}
-
-func WithCache(cache cache.Cacher) Option {
-	return func(s *Server) {
-		s.cache = cache
-		s.cacheEnabled = true
-	}
 }

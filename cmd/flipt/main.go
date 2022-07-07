@@ -430,7 +430,7 @@ func run(_ []string) error {
 			logger = logger.WithField("cache", cacher.String())
 			logger.Debug("cache enabled")
 
-			opts = append(opts, server.WithCache(cacher))
+			// TODO: enable cache interceptor
 		}
 
 		var (

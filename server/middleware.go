@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -137,4 +138,14 @@ type variantFlagKeyger interface {
 func flagCacheKey(key string) string {
 	k := fmt.Sprintf("f:%s", key)
 	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))) //nolint:gosec
+}
+
+func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
+	out, err := json.Marshal(r.GetContext())
+	if err != nil {
+		return "", err
+	}
+
+	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
+	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))), nil //nolint:gosec
 }

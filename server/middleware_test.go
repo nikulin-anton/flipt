@@ -144,10 +144,8 @@ func TestFlagCachingUnaryInterceptor_GetFlag(t *testing.T) {
 		})
 		cacheSpy = newCacheSpy(cache)
 		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
+			logger: logger,
+			store:  store,
 		}
 		req = &flipt.GetFlagRequest{Key: "foo"}
 	)
@@ -196,10 +194,8 @@ func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
 		})
 		cacheSpy = newCacheSpy(cache)
 		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
+			logger: logger,
+			store:  store,
 		}
 		req = &flipt.UpdateFlagRequest{
 			Key:         "key",
@@ -220,6 +216,179 @@ func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.UpdateFlag(ctx, r.(*flipt.UpdateFlagRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	got, err := unaryInterceptor(context.Background(), req, info, handler)
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+
+	assert.Equal(t, 1, cacheSpy.deleteCalled)
+	assert.NotEmpty(t, cacheSpy.deleteKeys)
+}
+
+func TestFlagCachingUnaryInterceptor_DeleteFlag(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger: logger,
+			store:  store,
+		}
+		req = &flipt.DeleteFlagRequest{
+			Key: "key",
+		}
+	)
+
+	store.On("DeleteFlag", mock.Anything, req).Return(nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.DeleteFlag(ctx, r.(*flipt.DeleteFlagRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	got, err := unaryInterceptor(context.Background(), req, info, handler)
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+
+	assert.Equal(t, 1, cacheSpy.deleteCalled)
+	assert.NotEmpty(t, cacheSpy.deleteKeys)
+}
+
+func TestFlagCachingUnaryInterceptor_CreateVariant(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger: logger,
+			store:  store,
+		}
+		req = &flipt.CreateVariantRequest{
+			FlagKey:     "flagKey",
+			Key:         "key",
+			Name:        "name",
+			Description: "desc",
+		}
+	)
+
+	store.On("CreateVariant", mock.Anything, req).Return(&flipt.Variant{
+		Id:          "1",
+		FlagKey:     req.FlagKey,
+		Key:         req.Key,
+		Name:        req.Name,
+		Description: req.Description,
+		Attachment:  req.Attachment,
+	}, nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.CreateVariant(ctx, r.(*flipt.CreateVariantRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	got, err := unaryInterceptor(context.Background(), req, info, handler)
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+
+	assert.Equal(t, 1, cacheSpy.deleteCalled)
+	assert.NotEmpty(t, cacheSpy.deleteKeys)
+}
+
+func TestFlagCachingUnaryInterceptor_UpdateVariant(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger: logger,
+			store:  store,
+		}
+		req = &flipt.UpdateVariantRequest{
+			Id:          "1",
+			FlagKey:     "flagKey",
+			Key:         "key",
+			Name:        "name",
+			Description: "desc",
+		}
+	)
+
+	store.On("UpdateVariant", mock.Anything, req).Return(&flipt.Variant{
+		Id:          req.Id,
+		FlagKey:     req.FlagKey,
+		Key:         req.Key,
+		Name:        req.Name,
+		Description: req.Description,
+		Attachment:  req.Attachment,
+	}, nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.UpdateVariant(ctx, r.(*flipt.UpdateVariantRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	got, err := unaryInterceptor(context.Background(), req, info, handler)
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+
+	assert.Equal(t, 1, cacheSpy.deleteCalled)
+	assert.NotEmpty(t, cacheSpy.deleteKeys)
+}
+
+func TestFlagCachingUnaryInterceptor_DeleteVariant(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger: logger,
+			store:  store,
+		}
+		req = &flipt.DeleteVariantRequest{
+			Id: "1",
+		}
+	)
+
+	store.On("DeleteVariant", mock.Anything, req).Return(nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.DeleteVariant(ctx, r.(*flipt.DeleteVariantRequest))
 	}
 
 	info := &grpc.UnaryServerInfo{

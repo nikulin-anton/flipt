@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -16,7 +14,6 @@ import (
 	errs "go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
-	"google.golang.org/protobuf/proto"
 	timestamp "google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -30,12 +27,7 @@ func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (resp
 		r.RequestId = uuid.Must(uuid.NewV4()).String()
 	}
 
-	if s.cacheEnabled {
-		// check cache
-		resp, err = s.evaluateWithCache(ctx, r)
-	} else {
-		resp, err = s.evaluate(ctx, r)
-	}
+	resp, err = s.evaluate(ctx, r)
 
 	if resp != nil {
 		resp.RequestId = r.RequestId
@@ -51,48 +43,48 @@ func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (resp
 	return resp, nil
 }
 
-func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
-	var (
-		logger   = s.logger.WithField("request", r)
-		key, err = evaluationCacheKey(r)
-	)
+// func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
+// 	var (
+// 		logger   = s.logger.WithField("request", r)
+// 		key, err = evaluationCacheKey(r)
+// 	)
 
-	if err != nil {
-		// if error, log and continue to evaluate
-		logger.WithError(err).Error("generating cache key")
-		return s.evaluate(ctx, r)
-	}
+// 	if err != nil {
+// 		// if error, log and continue to evaluate
+// 		logger.WithError(err).Error("generating cache key")
+// 		return s.evaluate(ctx, r)
+// 	}
 
-	cached, ok, err := s.cache.Get(ctx, key)
-	if err != nil {
-		// if error, log and continue to evaluate
-		logger.WithError(err).Error("getting from cache")
-		return s.evaluate(ctx, r)
-	}
+// 	cached, ok, err := s.cache.Get(ctx, key)
+// 	if err != nil {
+// 		// if error, log and continue to evaluate
+// 		logger.WithError(err).Error("getting from cache")
+// 		return s.evaluate(ctx, r)
+// 	}
 
-	if !ok {
-		logger.Debug("evaluate cache miss")
-		resp, err := s.evaluate(ctx, r)
-		if err != nil {
-			return resp, err
-		}
-		data, err := proto.Marshal(resp)
-		if err != nil {
-			return resp, err
-		}
-		err = s.cache.Set(ctx, key, data)
-		return resp, err
-	}
+// 	if !ok {
+// 		logger.Debug("evaluate cache miss")
+// 		resp, err := s.evaluate(ctx, r)
+// 		if err != nil {
+// 			return resp, err
+// 		}
+// 		data, err := proto.Marshal(resp)
+// 		if err != nil {
+// 			return resp, err
+// 		}
+// 		err = s.cache.Set(ctx, key, data)
+// 		return resp, err
+// 	}
 
-	resp := &flipt.EvaluationResponse{}
-	if err := proto.Unmarshal(cached, resp); err != nil {
-		logger.WithError(err).Error("unmarshalling from cache")
-		return s.evaluate(ctx, r)
-	}
+// 	resp := &flipt.EvaluationResponse{}
+// 	if err := proto.Unmarshal(cached, resp); err != nil {
+// 		logger.WithError(err).Error("unmarshalling from cache")
+// 		return s.evaluate(ctx, r)
+// 	}
 
-	logger.Debugf("evaluate cache hit: %+v", resp)
-	return resp, nil
-}
+// 	logger.Debugf("evaluate cache hit: %+v", resp)
+// 	return resp, nil
+// }
 
 // BatchEvaluate evaluates a request for multiple flags and entities
 func (s *Server) BatchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequest) (*flipt.BatchEvaluationResponse, error) {
@@ -317,16 +309,6 @@ func (s *Server) evaluate(ctx context.Context, r *flipt.EvaluationRequest) (*fli
 	} // end rule loop
 
 	return resp, nil
-}
-
-func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
-	out, err := json.Marshal(r.GetContext())
-	if err != nil {
-		return "", err
-	}
-
-	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
-	return fmt.Sprintf("flipt:%x", md5.Sum([]byte(k))), nil //nolint:gosec
 }
 
 func crc32Num(entityID string, salt string) uint {
