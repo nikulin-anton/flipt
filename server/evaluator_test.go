@@ -3,13 +3,16 @@ package server
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.flipt.io/flipt/config"
 	"go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/server/cache/memory"
 	"go.flipt.io/flipt/storage"
 )
 
@@ -506,6 +509,144 @@ func TestEvaluate_MatchAll_SingleVariantDistribution(t *testing.T) {
 			assert.Equal(t, "boz", resp.Value)
 			assert.Equal(t, `{"key":"value"}`, resp.Attachment)
 		})
+	}
+}
+
+func TestEvaluateWithCache_MatchAll_SingleVariantDistribution(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		s = &Server{
+			logger:       logger,
+			store:        store,
+			cache:        cache,
+			cacheEnabled: true,
+		}
+	)
+
+	store.On("GetFlag", mock.Anything, "foo").Return(enabledFlag, nil)
+
+	store.On("GetEvaluationRules", mock.Anything, "foo").Return(
+		[]*storage.EvaluationRule{
+			{
+				ID:               "1",
+				FlagKey:          "foo",
+				SegmentKey:       "bar",
+				SegmentMatchType: flipt.MatchType_ALL_MATCH_TYPE,
+				Rank:             0,
+				Constraints: []storage.EvaluationConstraint{
+					// constraint: bar (string) == baz
+					{
+						ID:       "2",
+						Type:     flipt.ComparisonType_STRING_COMPARISON_TYPE,
+						Property: "bar",
+						Operator: flipt.OpEQ,
+						Value:    "baz",
+					},
+					// constraint: admin (bool) == true
+					{
+						ID:       "3",
+						Type:     flipt.ComparisonType_BOOLEAN_COMPARISON_TYPE,
+						Property: "admin",
+						Operator: flipt.OpTrue,
+					},
+				},
+			},
+		}, nil)
+
+	store.On("GetEvaluationDistributions", mock.Anything, "1").Return(
+		[]*storage.EvaluationDistribution{
+			{
+				ID:                "4",
+				RuleID:            "1",
+				VariantID:         "5",
+				Rollout:           100,
+				VariantKey:        "boz",
+				VariantAttachment: `{"key":"value"}`,
+			},
+		}, nil)
+
+	tests := []struct {
+		name      string
+		req       *flipt.EvaluationRequest
+		wantMatch bool
+	}{
+		{
+			name: "matches all",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar":   "baz",
+					"admin": "true",
+				},
+			},
+			wantMatch: true,
+		},
+		{
+			name: "no match all",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar":   "boz",
+					"admin": "true",
+				},
+			},
+		},
+		{
+			name: "no match just bool value",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"admin": "true",
+				},
+			},
+		},
+		{
+			name: "no match just string value",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar": "baz",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		var (
+			req       = tt.req
+			wantMatch = tt.wantMatch
+		)
+
+		// run many times to ensure cache is working correctly
+		for i := 0; i < 10; i++ {
+			t.Run(tt.name, func(t *testing.T) {
+				resp, err := s.Evaluate(context.TODO(), req)
+				require.NoError(t, err)
+				assert.NotNil(t, resp)
+				assert.Equal(t, "foo", resp.FlagKey)
+				assert.Equal(t, req.Context, resp.RequestContext)
+
+				if !wantMatch {
+					assert.False(t, resp.Match)
+					assert.Empty(t, resp.SegmentKey)
+					return
+				}
+
+				assert.True(t, resp.Match)
+				assert.Equal(t, "bar", resp.SegmentKey)
+				assert.Equal(t, "boz", resp.Value)
+				assert.Equal(t, `{"key":"value"}`, resp.Attachment)
+			})
+		}
 	}
 }
 
