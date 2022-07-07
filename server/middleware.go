@@ -12,7 +12,7 @@ import (
 )
 
 // ValidationUnaryInterceptor validates incomming requests
-func (s *Server) ValidationUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func ValidationUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	if v, ok := req.(flipt.Validator); ok {
 		if err := v.Validate(); err != nil {
 			return nil, err
@@ -23,7 +23,7 @@ func (s *Server) ValidationUnaryInterceptor(ctx context.Context, req interface{}
 }
 
 // ErrorUnaryInterceptor intercepts known errors and returns the appropriate GRPC status code
-func (s *Server) ErrorUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+func ErrorUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	resp, err = handler(ctx, req)
 	if err == nil {
 		return resp, nil

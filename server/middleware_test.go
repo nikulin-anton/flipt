@@ -55,15 +55,13 @@ func TestValidationUnaryInterceptor(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			var (
-				subject = &Server{}
-
 				spyHandler = grpc.UnaryHandler(func(ctx context.Context, req interface{}) (interface{}, error) {
 					called++
 					return nil, nil
 				})
 			)
 
-			_, _ = subject.ValidationUnaryInterceptor(context.Background(), req, nil, spyHandler)
+			_, _ = ValidationUnaryInterceptor(context.Background(), req, nil, spyHandler)
 			assert.Equal(t, wantCalled, called)
 		})
 	}
@@ -113,14 +111,12 @@ func TestErrorUnaryInterceptor(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			var (
-				subject = &Server{}
-
 				spyHandler = grpc.UnaryHandler(func(ctx context.Context, req interface{}) (interface{}, error) {
 					return nil, wantErr
 				})
 			)
 
-			_, err := subject.ErrorUnaryInterceptor(context.Background(), nil, nil, spyHandler)
+			_, err := ErrorUnaryInterceptor(context.Background(), nil, nil, spyHandler)
 			if wantErr != nil {
 				require.Error(t, err)
 				status := status.Convert(err)

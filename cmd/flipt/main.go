@@ -473,8 +473,8 @@ func run(_ []string) error {
 			grpc_logrus.UnaryServerInterceptor(logger),
 			grpc_prometheus.UnaryServerInterceptor,
 			otgrpc.OpenTracingServerInterceptor(tracer),
-			srv.ErrorUnaryInterceptor,
-			srv.ValidationUnaryInterceptor,
+			server.ErrorUnaryInterceptor,
+			server.ValidationUnaryInterceptor,
 		))
 
 		if cfg.Server.Protocol == config.HTTPS {
