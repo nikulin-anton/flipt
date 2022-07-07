@@ -3,11 +3,16 @@ package server
 import (
 	"context"
 	"testing"
+	"time"
 
+	"go.flipt.io/flipt/config"
 	"go.flipt.io/flipt/errors"
+	flipt "go.flipt.io/flipt/rpc/flipt"
+	"go.flipt.io/flipt/server/cache/memory"
 
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -127,4 +132,104 @@ func TestErrorUnaryInterceptor(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestFlagCachingUnaryInterceptor_GetFlag(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger:       logger,
+			store:        store,
+			cache:        cacheSpy,
+			cacheEnabled: true,
+		}
+		req = &flipt.GetFlagRequest{Key: "foo"}
+	)
+
+	store.On("GetFlag", mock.Anything, "foo").Return(&flipt.Flag{
+		Key:     req.Key,
+		Enabled: true,
+	}, nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.GetFlag(ctx, r.(*flipt.GetFlagRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	for i := 0; i < 10; i++ {
+		got, err := unaryInterceptor(context.Background(), req, info, handler)
+		require.NoError(t, err)
+		assert.NotNil(t, got)
+	}
+
+	assert.Equal(t, 10, cacheSpy.getCalled)
+	assert.NotEmpty(t, cacheSpy.getKeys)
+
+	// cache key is flipt:(md5(f:foo))
+	const cacheKey = "flipt:864ce319cc64891a59e4745fbe7ecc47"
+	_, ok := cacheSpy.getKeys[cacheKey]
+	assert.True(t, ok)
+
+	assert.Equal(t, 1, cacheSpy.setCalled)
+	assert.NotEmpty(t, cacheSpy.setItems)
+	assert.NotEmpty(t, cacheSpy.setItems[cacheKey])
+}
+
+func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger:       logger,
+			store:        store,
+			cache:        cacheSpy,
+			cacheEnabled: true,
+		}
+		req = &flipt.UpdateFlagRequest{
+			Key:         "key",
+			Name:        "name",
+			Description: "desc",
+			Enabled:     true,
+		}
+	)
+
+	store.On("UpdateFlag", mock.Anything, req).Return(&flipt.Flag{
+		Key:         req.Key,
+		Name:        req.Name,
+		Description: req.Description,
+		Enabled:     req.Enabled,
+	}, nil)
+
+	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.UpdateFlag(ctx, r.(*flipt.UpdateFlagRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	got, err := unaryInterceptor(context.Background(), req, info, handler)
+	require.NoError(t, err)
+	assert.NotNil(t, got)
+
+	assert.Equal(t, 1, cacheSpy.deleteCalled)
+	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }

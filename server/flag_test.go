@@ -36,53 +36,6 @@ func TestGetFlag(t *testing.T) {
 	assert.Equal(t, true, got.Enabled)
 }
 
-func TestGetFlag_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.GetFlagRequest{Key: "foo"}
-	)
-
-	store.On("GetFlag", mock.Anything, "foo").Return(&flipt.Flag{
-		Key:     req.Key,
-		Enabled: true,
-	}, nil)
-
-	// run many times to ensure cache is working correctly
-	for i := 0; i < 10; i++ {
-		got, err := s.GetFlag(context.TODO(), req)
-		require.NoError(t, err)
-
-		assert.NotNil(t, got)
-		assert.Equal(t, "foo", got.Key)
-		assert.Equal(t, true, got.Enabled)
-	}
-
-	assert.Equal(t, 10, cacheSpy.getCalled)
-	assert.NotEmpty(t, cacheSpy.getKeys)
-
-	// cache key is flipt:(md5(f:foo))
-	const cacheKey = "flipt:864ce319cc64891a59e4745fbe7ecc47"
-	_, ok := cacheSpy.getKeys[cacheKey]
-	assert.True(t, ok)
-
-	assert.Equal(t, 1, cacheSpy.setCalled)
-	assert.NotEmpty(t, cacheSpy.setItems)
-	assert.NotEmpty(t, cacheSpy.setItems[cacheKey])
-
-}
-
 func TestListFlags(t *testing.T) {
 	var (
 		store = &storeMock{}
@@ -103,42 +56,6 @@ func TestListFlags(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, got.Flags)
-}
-
-func TestListFlags_NoCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-	)
-
-	store.On("ListFlags", mock.Anything, mock.Anything).Return(
-		[]*flipt.Flag{
-			{
-				Key: "foo",
-			},
-		}, nil)
-
-	got, err := s.ListFlags(context.TODO(), &flipt.ListFlagRequest{})
-	require.NoError(t, err)
-
-	assert.NotEmpty(t, got.Flags)
-
-	assert.Equal(t, 0, cacheSpy.getCalled)
-	assert.Empty(t, cacheSpy.getKeys)
-
-	assert.Equal(t, 0, cacheSpy.setCalled)
-	assert.Empty(t, cacheSpy.setItems)
 }
 
 func TestCreateFlag(t *testing.T) {
@@ -169,48 +86,6 @@ func TestCreateFlag(t *testing.T) {
 	assert.NotNil(t, got)
 }
 
-func TestCreateFlag_NoCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.CreateFlagRequest{
-			Key:         "key",
-			Name:        "name",
-			Description: "desc",
-			Enabled:     true,
-		}
-	)
-
-	store.On("CreateFlag", mock.Anything, req).Return(&flipt.Flag{
-		Key:         req.Key,
-		Name:        req.Name,
-		Description: req.Description,
-		Enabled:     req.Enabled,
-	}, nil)
-
-	got, err := s.CreateFlag(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 0, cacheSpy.getCalled)
-	assert.Empty(t, cacheSpy.getKeys)
-
-	assert.Equal(t, 0, cacheSpy.setCalled)
-	assert.Empty(t, cacheSpy.setItems)
-}
-
 func TestUpdateFlag(t *testing.T) {
 	var (
 		store = &storeMock{}
@@ -237,45 +112,6 @@ func TestUpdateFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NotNil(t, got)
-}
-
-func TestUpdateFlag_WithCache(t *testing.T) {
-	var (
-		store = &storeMock{}
-		cache = memory.NewCache(config.CacheConfig{
-			TTL:     time.Second,
-			Enabled: true,
-			Backend: config.CacheMemory,
-		})
-		cacheSpy = newCacheSpy(cache)
-		s        = &Server{
-			logger:       logger,
-			store:        store,
-			cache:        cacheSpy,
-			cacheEnabled: true,
-		}
-		req = &flipt.UpdateFlagRequest{
-			Key:         "key",
-			Name:        "name",
-			Description: "desc",
-			Enabled:     true,
-		}
-	)
-
-	store.On("UpdateFlag", mock.Anything, req).Return(&flipt.Flag{
-		Key:         req.Key,
-		Name:        req.Name,
-		Description: req.Description,
-		Enabled:     req.Enabled,
-	}, nil)
-
-	got, err := s.UpdateFlag(context.TODO(), req)
-	require.NoError(t, err)
-
-	assert.NotNil(t, got)
-
-	assert.Equal(t, 1, cacheSpy.deleteCalled)
-	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
 func TestDeleteFlag(t *testing.T) {
