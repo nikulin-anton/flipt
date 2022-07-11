@@ -1,5 +1,6 @@
 tap 'goreleaser/tap'
 tap 'go-task/tap'
+tap 'anchore/syft'
 
 brew 'cosign'
 brew 'go'
@@ -8,3 +9,4 @@ brew 'go-task'
 brew 'hadolint'
 brew 'protobuf'
 brew 'sqlite'
+brew 'syft'
