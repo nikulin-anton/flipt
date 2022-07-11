@@ -8,104 +8,30 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/gofrs/uuid"
 	errs "go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/storage"
-	timestamp "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Evaluate evaluates a request for a given flag and entity
 func (s *Server) Evaluate(ctx context.Context, r *flipt.EvaluationRequest) (resp *flipt.EvaluationResponse, err error) {
 	s.logger.WithField("request", r).Debug("evaluate")
-	startTime := time.Now()
-
-	// set request ID if not present
-	if r.RequestId == "" {
-		r.RequestId = uuid.Must(uuid.NewV4()).String()
-	}
-
 	resp, err = s.evaluate(ctx, r)
-
-	if resp != nil {
-		resp.RequestId = r.RequestId
-		resp.Timestamp = timestamp.New(time.Now().UTC())
-		resp.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
-	}
-
 	if err != nil {
 		return resp, err
 	}
-
 	s.logger.WithField("response", resp).Debug("evaluate")
 	return resp, nil
 }
 
-// func (s *Server) evaluateWithCache(ctx context.Context, r *flipt.EvaluationRequest) (*flipt.EvaluationResponse, error) {
-// 	var (
-// 		logger   = s.logger.WithField("request", r)
-// 		key, err = evaluationCacheKey(r)
-// 	)
-
-// 	if err != nil {
-// 		// if error, log and continue to evaluate
-// 		logger.WithError(err).Error("generating cache key")
-// 		return s.evaluate(ctx, r)
-// 	}
-
-// 	cached, ok, err := s.cache.Get(ctx, key)
-// 	if err != nil {
-// 		// if error, log and continue to evaluate
-// 		logger.WithError(err).Error("getting from cache")
-// 		return s.evaluate(ctx, r)
-// 	}
-
-// 	if !ok {
-// 		logger.Debug("evaluate cache miss")
-// 		resp, err := s.evaluate(ctx, r)
-// 		if err != nil {
-// 			return resp, err
-// 		}
-// 		data, err := proto.Marshal(resp)
-// 		if err != nil {
-// 			return resp, err
-// 		}
-// 		err = s.cache.Set(ctx, key, data)
-// 		return resp, err
-// 	}
-
-// 	resp := &flipt.EvaluationResponse{}
-// 	if err := proto.Unmarshal(cached, resp); err != nil {
-// 		logger.WithError(err).Error("unmarshalling from cache")
-// 		return s.evaluate(ctx, r)
-// 	}
-
-// 	logger.Debugf("evaluate cache hit: %+v", resp)
-// 	return resp, nil
-// }
-
 // BatchEvaluate evaluates a request for multiple flags and entities
 func (s *Server) BatchEvaluate(ctx context.Context, r *flipt.BatchEvaluationRequest) (*flipt.BatchEvaluationResponse, error) {
 	s.logger.WithField("request", r).Debug("batch-evaluate")
-	startTime := time.Now()
-
-	// set request ID if not present
-	if r.RequestId == "" {
-		r.RequestId = uuid.Must(uuid.NewV4()).String()
-	}
-
 	resp, err := s.batchEvaluate(ctx, r)
 	if err != nil {
 		return nil, err
 	}
-
-	if resp != nil {
-		resp.RequestId = r.RequestId
-		resp.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
-	}
-
 	s.logger.WithField("response", resp).Debug("batch-evaluate")
 	return resp, nil
 }

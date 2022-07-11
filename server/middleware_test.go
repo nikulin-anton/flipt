@@ -9,6 +9,7 @@ import (
 	"go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
 	"go.flipt.io/flipt/server/cache/memory"
+	"go.flipt.io/flipt/storage"
 
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
@@ -134,7 +135,7 @@ func TestErrorUnaryInterceptor(t *testing.T) {
 	}
 }
 
-func TestFlagCachingUnaryInterceptor_GetFlag(t *testing.T) {
+func TestCacheUnaryInterceptor_GetFlag(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -155,7 +156,7 @@ func TestFlagCachingUnaryInterceptor_GetFlag(t *testing.T) {
 		Enabled: true,
 	}, nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.GetFlag(ctx, r.(*flipt.GetFlagRequest))
@@ -184,7 +185,7 @@ func TestFlagCachingUnaryInterceptor_GetFlag(t *testing.T) {
 	assert.NotEmpty(t, cacheSpy.setItems[cacheKey])
 }
 
-func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
+func TestCacheUnaryInterceptor_UpdateFlag(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -212,7 +213,7 @@ func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
 		Enabled:     req.Enabled,
 	}, nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.UpdateFlag(ctx, r.(*flipt.UpdateFlagRequest))
@@ -230,7 +231,7 @@ func TestFlagCachingUnaryInterceptor_UpdateFlag(t *testing.T) {
 	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
-func TestFlagCachingUnaryInterceptor_DeleteFlag(t *testing.T) {
+func TestCacheUnaryInterceptor_DeleteFlag(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -250,7 +251,7 @@ func TestFlagCachingUnaryInterceptor_DeleteFlag(t *testing.T) {
 
 	store.On("DeleteFlag", mock.Anything, req).Return(nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.DeleteFlag(ctx, r.(*flipt.DeleteFlagRequest))
@@ -268,7 +269,7 @@ func TestFlagCachingUnaryInterceptor_DeleteFlag(t *testing.T) {
 	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
-func TestFlagCachingUnaryInterceptor_CreateVariant(t *testing.T) {
+func TestCacheUnaryInterceptor_CreateVariant(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -298,7 +299,7 @@ func TestFlagCachingUnaryInterceptor_CreateVariant(t *testing.T) {
 		Attachment:  req.Attachment,
 	}, nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.CreateVariant(ctx, r.(*flipt.CreateVariantRequest))
@@ -316,7 +317,7 @@ func TestFlagCachingUnaryInterceptor_CreateVariant(t *testing.T) {
 	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
-func TestFlagCachingUnaryInterceptor_UpdateVariant(t *testing.T) {
+func TestCacheUnaryInterceptor_UpdateVariant(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -347,7 +348,7 @@ func TestFlagCachingUnaryInterceptor_UpdateVariant(t *testing.T) {
 		Attachment:  req.Attachment,
 	}, nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.UpdateVariant(ctx, r.(*flipt.UpdateVariantRequest))
@@ -365,7 +366,7 @@ func TestFlagCachingUnaryInterceptor_UpdateVariant(t *testing.T) {
 	assert.NotEmpty(t, cacheSpy.deleteKeys)
 }
 
-func TestFlagCachingUnaryInterceptor_DeleteVariant(t *testing.T) {
+func TestCacheUnaryInterceptor_DeleteVariant(t *testing.T) {
 	var (
 		store = &storeMock{}
 		cache = memory.NewCache(config.CacheConfig{
@@ -385,7 +386,7 @@ func TestFlagCachingUnaryInterceptor_DeleteVariant(t *testing.T) {
 
 	store.On("DeleteVariant", mock.Anything, req).Return(nil)
 
-	unaryInterceptor := flagCachingUnaryInterceptor(cacheSpy, logger)
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
 
 	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
 		return s.DeleteVariant(ctx, r.(*flipt.DeleteVariantRequest))
@@ -401,4 +402,155 @@ func TestFlagCachingUnaryInterceptor_DeleteVariant(t *testing.T) {
 
 	assert.Equal(t, 1, cacheSpy.deleteCalled)
 	assert.NotEmpty(t, cacheSpy.deleteKeys)
+}
+
+func TestCacheUnaryInterceptor_Evaluate(t *testing.T) {
+	var (
+		store = &storeMock{}
+		cache = memory.NewCache(config.CacheConfig{
+			TTL:     time.Second,
+			Enabled: true,
+			Backend: config.CacheMemory,
+		})
+		cacheSpy = newCacheSpy(cache)
+		s        = &Server{
+			logger: logger,
+			store:  store,
+		}
+	)
+
+	store.On("GetFlag", mock.Anything, "foo").Return(enabledFlag, nil)
+
+	store.On("GetEvaluationRules", mock.Anything, "foo").Return(
+		[]*storage.EvaluationRule{
+			{
+				ID:               "1",
+				FlagKey:          "foo",
+				SegmentKey:       "bar",
+				SegmentMatchType: flipt.MatchType_ALL_MATCH_TYPE,
+				Rank:             0,
+				Constraints: []storage.EvaluationConstraint{
+					// constraint: bar (string) == baz
+					{
+						ID:       "2",
+						Type:     flipt.ComparisonType_STRING_COMPARISON_TYPE,
+						Property: "bar",
+						Operator: flipt.OpEQ,
+						Value:    "baz",
+					},
+					// constraint: admin (bool) == true
+					{
+						ID:       "3",
+						Type:     flipt.ComparisonType_BOOLEAN_COMPARISON_TYPE,
+						Property: "admin",
+						Operator: flipt.OpTrue,
+					},
+				},
+			},
+		}, nil)
+
+	store.On("GetEvaluationDistributions", mock.Anything, "1").Return(
+		[]*storage.EvaluationDistribution{
+			{
+				ID:                "4",
+				RuleID:            "1",
+				VariantID:         "5",
+				Rollout:           100,
+				VariantKey:        "boz",
+				VariantAttachment: `{"key":"value"}`,
+			},
+		}, nil)
+
+	tests := []struct {
+		name      string
+		req       *flipt.EvaluationRequest
+		wantMatch bool
+	}{
+		{
+			name: "matches all",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar":   "baz",
+					"admin": "true",
+				},
+			},
+			wantMatch: true,
+		},
+		{
+			name: "no match all",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar":   "boz",
+					"admin": "true",
+				},
+			},
+		},
+		{
+			name: "no match just bool value",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"admin": "true",
+				},
+			},
+		},
+		{
+			name: "no match just string value",
+			req: &flipt.EvaluationRequest{
+				FlagKey:  "foo",
+				EntityId: "1",
+				Context: map[string]string{
+					"bar": "baz",
+				},
+			},
+		},
+	}
+
+	unaryInterceptor := CacheUnaryInterceptor(cacheSpy, logger)
+
+	handler := func(ctx context.Context, r interface{}) (interface{}, error) {
+		return s.Evaluate(ctx, r.(*flipt.EvaluationRequest))
+	}
+
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "FakeMethod",
+	}
+
+	for i, tt := range tests {
+		var (
+			i         = i + 1
+			req       = tt.req
+			wantMatch = tt.wantMatch
+		)
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := unaryInterceptor(context.Background(), req, info, handler)
+			require.NoError(t, err)
+			assert.NotNil(t, got)
+
+			resp := got.(*flipt.EvaluationResponse)
+			assert.NotNil(t, resp)
+			assert.Equal(t, "foo", resp.FlagKey)
+			assert.Equal(t, req.Context, resp.RequestContext)
+
+			assert.Equal(t, i, cacheSpy.getCalled)
+			assert.NotEmpty(t, cacheSpy.getKeys)
+
+			if !wantMatch {
+				assert.False(t, resp.Match)
+				assert.Empty(t, resp.SegmentKey)
+				return
+			}
+
+			assert.True(t, resp.Match)
+			assert.Equal(t, "bar", resp.SegmentKey)
+			assert.Equal(t, "boz", resp.Value)
+			assert.Equal(t, `{"key":"value"}`, resp.Attachment)
+		})
+	}
 }

@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/sirupsen/logrus"
 	errs "go.flipt.io/flipt/errors"
 	flipt "go.flipt.io/flipt/rpc/flipt"
@@ -15,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	timestamp "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ValidationUnaryInterceptor validates incomming requests
@@ -59,13 +62,113 @@ func ErrorUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnarySe
 	return
 }
 
-func flagCachingUnaryInterceptor(cache cache.Cacher, logger logrus.FieldLogger) grpc.UnaryServerInterceptor {
+// EvaluationUnaryInterceptor sets required request/response fields.
+// Note: this should be added before any caching interceptor to ensure the request id/response fields are unique.
+func EvaluationUnaryInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	switch r := req.(type) {
+	case *flipt.EvaluationRequest:
+		startTime := time.Now()
+
+		// set request ID if not present
+		if r.RequestId == "" {
+			r.RequestId = uuid.Must(uuid.NewV4()).String()
+		}
+
+		resp, err = handler(ctx, req)
+		if err != nil {
+			return resp, err
+		}
+
+		// set response fields
+		if resp != nil {
+			if rr, ok := resp.(*flipt.EvaluationResponse); ok {
+				rr.RequestId = r.RequestId
+				rr.Timestamp = timestamp.New(time.Now().UTC())
+				rr.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
+			}
+			return resp, nil
+		}
+
+	case *flipt.BatchEvaluationRequest:
+		startTime := time.Now()
+
+		// set request ID if not present
+		if r.RequestId == "" {
+			r.RequestId = uuid.Must(uuid.NewV4()).String()
+		}
+
+		resp, err = handler(ctx, req)
+		if err != nil {
+			return resp, err
+		}
+
+		// set response fields
+		if resp != nil {
+			if rr, ok := resp.(*flipt.BatchEvaluationResponse); ok {
+				rr.RequestId = r.RequestId
+				rr.RequestDurationMillis = float64(time.Since(startTime)) / float64(time.Millisecond)
+				return resp, nil
+			}
+		}
+	}
+
+	return handler(ctx, req)
+}
+
+// CacheUnaryInterceptor caches the response of a request if the request is cacheable.
+// TODO: we could clean this up by using generics in 1.18+ to avoid the type switch/duplicate code.
+func CacheUnaryInterceptor(cache cache.Cacher, logger logrus.FieldLogger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if cache == nil {
 			return handler(ctx, req)
 		}
 
 		switch r := req.(type) {
+		case *flipt.EvaluationRequest:
+			key, err := evaluationCacheKey(r)
+			if err != nil {
+				logger.WithError(err).Error("getting cache key")
+				return handler(ctx, req)
+			}
+
+			cached, ok, err := cache.Get(ctx, key)
+			if err != nil {
+				// if error, log and without cache
+				logger.WithError(err).Error("getting from cache")
+				return handler(ctx, req)
+			}
+
+			if ok {
+				resp := &flipt.EvaluationResponse{}
+				if err := proto.Unmarshal(cached, resp); err != nil {
+					logger.WithError(err).Error("unmarshalling from cache")
+					return handler(ctx, req)
+				}
+
+				logger.Debugf("evaluate cache hit: %+v", resp)
+				return resp, nil
+			}
+
+			logger.Debug("evaluate cache miss")
+			resp, err := handler(ctx, req)
+			if err != nil {
+				return resp, err
+			}
+
+			// marshal response
+			data, merr := proto.Marshal(resp.(*flipt.EvaluationResponse))
+			if merr != nil {
+				logger.WithError(merr).Error("marshalling for cache")
+				return resp, err
+			}
+
+			// set in cache
+			if cerr := cache.Set(ctx, key, data); cerr != nil {
+				logger.WithError(cerr).Error("setting in cache")
+			}
+
+			return resp, err
+
 		case *flipt.GetFlagRequest:
 			key := flagCacheKey(r.GetKey())
 
@@ -73,6 +176,7 @@ func flagCachingUnaryInterceptor(cache cache.Cacher, logger logrus.FieldLogger) 
 			if err != nil {
 				// if error, log and continue without cache
 				logger.WithError(err).Error("getting from cache")
+				return handler(ctx, req)
 			}
 
 			if ok {
@@ -143,7 +247,7 @@ func flagCacheKey(key string) string {
 func evaluationCacheKey(r *flipt.EvaluationRequest) (string, error) {
 	out, err := json.Marshal(r.GetContext())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("marshalling req to json: %w", err)
 	}
 
 	k := fmt.Sprintf("e:%s:%s:%s", r.GetFlagKey(), r.GetEntityId(), out)
