@@ -9,8 +9,6 @@ import (
 
 var _ flipt.FliptServer = &Server{}
 
-type Option func(s *Server)
-
 // Server serves the Flipt backend
 type Server struct {
 	logger logrus.FieldLogger
@@ -19,17 +17,9 @@ type Server struct {
 }
 
 // New creates a new Server
-func New(logger logrus.FieldLogger, store storage.Store, opts ...Option) *Server {
-	var (
-		s = &Server{
-			logger: logger,
-			store:  store,
-		}
-	)
-
-	for _, fn := range opts {
-		fn(s)
+func New(logger logrus.FieldLogger, store storage.Store) *Server {
+	return &Server{
+		logger: logger,
+		store:  store,
 	}
-
-	return s
 }

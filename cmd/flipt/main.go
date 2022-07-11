@@ -311,7 +311,7 @@ func run(_ []string) error {
 
 		defer ticker.Stop()
 
-		// start telemetry
+		// start telemetry if enabled
 		g.Go(func() error {
 			logger := l.WithField("component", "telemetry")
 
@@ -358,6 +358,7 @@ func run(_ []string) error {
 		httpServer *http.Server
 	)
 
+	// starts grpc server
 	g.Go(func() error {
 		logger := l.WithField("server", "grpc")
 
@@ -403,39 +404,7 @@ func run(_ []string) error {
 
 		logger = logger.WithField("store", store.String())
 
-		var opts []server.Option
-
-		if cfg.Cache.Enabled {
-			var cacher cache.Cacher
-
-			switch cfg.Cache.Backend {
-			case config.CacheMemory:
-				cacher = memory.NewCache(cfg.Cache)
-			case config.CacheRedis:
-				rdb := goredis.NewClient(&goredis.Options{
-					Addr:     fmt.Sprintf("%s:%d", cfg.Cache.Redis.Host, cfg.Cache.Redis.Port),
-					Password: cfg.Cache.Redis.Password,
-					DB:       cfg.Cache.Redis.DB,
-				})
-
-				defer rdb.Shutdown(shutdownCtx)
-
-				cacher = redis.NewCache(cfg.Cache, goredis_cache.New(&goredis_cache.Options{
-					Redis: rdb,
-				}))
-			}
-
-			logger = logger.WithField("cache", cacher.String())
-			logger.Debug("cache enabled")
-
-			// TODO: enable cache interceptor
-		}
-
-		var (
-			srv = server.New(logger, store, opts...)
-
-			tracer opentracing.Tracer = &opentracing.NoopTracer{}
-		)
+		var tracer opentracing.Tracer = &opentracing.NoopTracer{}
 
 		if cfg.Tracing.Jaeger.Enabled {
 			jaegerCfg := jaeger_config.Configuration{
@@ -463,9 +432,7 @@ func run(_ []string) error {
 
 		opentracing.SetGlobalTracer(tracer)
 
-		var grpcOpts []grpc.ServerOption
-
-		grpcOpts = append(grpcOpts, grpc_middleware.WithUnaryServerChain(
+		interceptors := []grpc.UnaryServerInterceptor{
 			grpc_recovery.UnaryServerInterceptor(),
 			grpc_ctxtags.UnaryServerInterceptor(),
 			grpc_logrus.UnaryServerInterceptor(logger),
@@ -473,7 +440,45 @@ func run(_ []string) error {
 			otgrpc.OpenTracingServerInterceptor(tracer),
 			server.ErrorUnaryInterceptor,
 			server.ValidationUnaryInterceptor,
-		))
+			server.EvaluationUnaryInterceptor,
+		}
+
+		if cfg.Cache.Enabled {
+			var cacher cache.Cacher
+
+			switch cfg.Cache.Backend {
+			case config.CacheMemory:
+				cacher = memory.NewCache(cfg.Cache)
+			case config.CacheRedis:
+				rdb := goredis.NewClient(&goredis.Options{
+					Addr:     fmt.Sprintf("%s:%d", cfg.Cache.Redis.Host, cfg.Cache.Redis.Port),
+					Password: cfg.Cache.Redis.Password,
+					DB:       cfg.Cache.Redis.DB,
+				})
+
+				defer rdb.Shutdown(shutdownCtx)
+
+				status := rdb.Ping(ctx)
+				if status == nil {
+					return errors.New("connecting to redis: no status")
+				}
+
+				if status.Err() != nil {
+					return fmt.Errorf("connecting to redis: %w", status.Err())
+				}
+
+				cacher = redis.NewCache(cfg.Cache, goredis_cache.New(&goredis_cache.Options{
+					Redis: rdb,
+				}))
+			}
+
+			interceptors = append(interceptors, server.CacheUnaryInterceptor(cacher, logger))
+
+			logger = logger.WithField("cache", cacher.String())
+			logger.Debug("cache enabled")
+		}
+
+		grpcOpts := []grpc.ServerOption{grpc_middleware.WithUnaryServerChain(interceptors...)}
 
 		if cfg.Server.Protocol == config.HTTPS {
 			creds, err := credentials.NewServerTLSFromFile(cfg.Server.CertFile, cfg.Server.CertKey)
@@ -484,7 +489,11 @@ func run(_ []string) error {
 			grpcOpts = append(grpcOpts, grpc.Creds(creds))
 		}
 
+		// initialize server
+		srv := server.New(logger, store)
+		// initialize grpc server
 		grpcServer = grpc.NewServer(grpcOpts...)
+
 		pb.RegisterFliptServer(grpcServer, srv)
 		grpc_prometheus.EnableHandlingTimeHistogram()
 		grpc_prometheus.Register(grpcServer)
@@ -494,6 +503,7 @@ func run(_ []string) error {
 		return grpcServer.Serve(lis)
 	})
 
+	// starts REST http(s) server
 	g.Go(func() error {
 		logger := l.WithField("server", cfg.Server.Protocol.String())
 
