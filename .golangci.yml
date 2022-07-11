@@ -64,13 +64,13 @@ issues:
   exclude-rules:
     # Exclude some staticcheck messages
     - linters:
-      - staticcheck
+        - staticcheck
       text: "SA1019: package github.com/golang/protobuf"
     - linters:
-      - staticcheck
+        - staticcheck
       text: "SA1019: ptypes."
     - linters:
-      - staticcheck
+        - staticcheck
       text: "SA1019: proto."
 
 linters-settings:
