@@ -93,8 +93,8 @@ func main() {
 			Use:     "flipt",
 			Short:   "Flipt is a modern feature flag solution",
 			Version: version,
-			Run: func(cmd *cobra.Command, args []string) {
-				if err := run(cmd.Context(), args); err != nil {
+			Run: func(cmd *cobra.Command, _ []string) {
+				if err := run(cmd.Context()); err != nil {
 					logrus.Error(err)
 					logrus.Exit(1)
 				}
@@ -107,8 +107,8 @@ func main() {
 		exportCmd = &cobra.Command{
 			Use:   "export",
 			Short: "Export flags/segments/rules to file/stdout",
-			Run: func(cmd *cobra.Command, args []string) {
-				if err := runExport(cmd.Context(), args); err != nil {
+			Run: func(cmd *cobra.Command, _ []string) {
+				if err := runExport(cmd.Context()); err != nil {
 					logrus.Error(err)
 					logrus.Exit(1)
 				}
@@ -129,7 +129,7 @@ func main() {
 		migrateCmd = &cobra.Command{
 			Use:   "migrate",
 			Short: "Run pending database migrations",
-			Run: func(cmd *cobra.Command, args []string) {
+			Run: func(cmd *cobra.Command, _ []string) {
 				migrator, err := sql.NewMigrator(*cfg, l)
 				if err != nil {
 					logrus.Error(err)
@@ -222,7 +222,7 @@ func main() {
 	logrus.Exit(0)
 }
 
-func run(ctx context.Context, _ []string) error {
+func run(ctx context.Context) error {
 	color.Cyan(banner)
 	fmt.Println()
 
