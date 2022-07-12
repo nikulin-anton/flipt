@@ -51,6 +51,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/segmentio/analytics-go.v3"
 
 	_ "github.com/golang-migrate/migrate/source/file"
@@ -252,6 +253,11 @@ func run(_ []string) error {
 		}
 	}
 
+	// print out any warnings from config parsing
+	for _, warning := range cfg.Warnings {
+		l.Warn(warning)
+	}
+
 	if cfg.Meta.CheckForUpdates && isRelease {
 		l.Debug("checking for updates...")
 
@@ -391,6 +397,10 @@ func run(_ []string) error {
 
 		defer db.Close()
 
+		if err := db.PingContext(ctx); err != nil {
+			return fmt.Errorf("pinging db: %w", err)
+		}
+
 		var store storage.Store
 
 		switch driver {
@@ -402,7 +412,7 @@ func run(_ []string) error {
 			store = mysql.NewStore(db)
 		}
 
-		logger = logger.WithField("store", store.String())
+		logger.Debugf("store: %q enabled", store.String())
 
 		var tracer opentracing.Tracer = &opentracing.NoopTracer{}
 
@@ -474,8 +484,7 @@ func run(_ []string) error {
 
 			interceptors = append(interceptors, server.CacheUnaryInterceptor(cacher, logger))
 
-			logger = logger.WithField("cache", cacher.String())
-			logger.Debug("cache enabled")
+			logger.Debugf("cache: %q enabled", cacher.String())
 		}
 
 		grpcOpts := []grpc.ServerOption{grpc_middleware.WithUnaryServerChain(interceptors...)}
@@ -516,6 +525,15 @@ func run(_ []string) error {
 			// See: https://github.com/markphelps/flipt/issues/664
 			muxOpts = []grpc_gateway.ServeMuxOption{
 				grpc_gateway.WithMarshalerOption(grpc_gateway.MIMEWildcard, pb.NewV1toV2MarshallerAdapter()),
+				grpc_gateway.WithMarshalerOption("application/json+pretty", &grpc_gateway.JSONPb{
+					MarshalOptions: protojson.MarshalOptions{
+						Indent:    "  ",
+						Multiline: true, // Optional, implied by presence of "Indent".
+					},
+					UnmarshalOptions: protojson.UnmarshalOptions{
+						DiscardUnknown: true,
+					},
+				}),
 			}
 
 			r        = chi.NewRouter()
@@ -567,6 +585,16 @@ func run(_ []string) error {
 		r.Use(middleware.RequestID)
 		r.Use(middleware.RealIP)
 		r.Use(middleware.Heartbeat("/health"))
+		r.Use(func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// checking Values as map[string][]string also catches ?pretty and ?pretty=
+				// r.URL.Query().Get("pretty") would not.
+				if _, ok := r.URL.Query()["pretty"]; ok {
+					r.Header.Set("Accept", "application/json+pretty")
+				}
+				h.ServeHTTP(w, r)
+			})
+		})
 		r.Use(middleware.Compress(gzip.DefaultCompression))
 		r.Use(middleware.Recoverer)
 		r.Mount("/metrics", promhttp.Handler())

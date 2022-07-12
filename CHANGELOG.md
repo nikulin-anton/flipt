@@ -3,6 +3,18 @@
 This format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Support for pretty printing JSON responses from API (via ?pretty=true or setting `Accept: application/json+pretty` header)
+
+### Changed
+
+- Ping database on startup to check if it's alive
+- `cache.memory.enabled` config value is deprecated. See [Deprecations](DEPRECATIONS.md) for more info.
+- `cache.memory.expiration` config value is deprecated. See [Deprecations](DEPRECATIONS.md) for more info.
+
 ## [v1.9.0](https://github.com/markphelps/flipt/releases/tag/v1.9.0) - 2022-07-06
 
 ### Changed

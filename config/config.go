@@ -14,6 +14,11 @@ import (
 	jaeger "github.com/uber/jaeger-client-go"
 )
 
+const (
+	deprecatedMsgMemoryEnabled    = `'cache.memory.enabled' is deprecated and will be removed in a future version. Please use 'cache.backend' and 'cache.enabled' instead.`
+	deprecatedMsgMemoryExpiration = `'cache.memory.expiration' is deprecated and will be removed in a future version. Please use 'cache.ttl' instead.`
+)
+
 type Config struct {
 	Log      LogConfig      `json:"log,omitempty"`
 	UI       UIConfig       `json:"ui,omitempty"`
@@ -23,6 +28,7 @@ type Config struct {
 	Tracing  TracingConfig  `json:"tracing,omitempty"`
 	Database DatabaseConfig `json:"database,omitempty"`
 	Meta     MetaConfig     `json:"meta,omitempty"`
+	Warnings []string       `json:"warnings,omitempty"`
 }
 
 type LogConfig struct {
@@ -256,8 +262,8 @@ const (
 	cacheBackend                = "cache.backend"
 	cacheEnabled                = "cache.enabled"
 	cacheTTL                    = "cache.ttl"
-	cacheMemoryEnabled          = "cache.memory.enabled"    // deprecated in v1.9.0
-	cacheMemoryExpiration       = "cache.memory.expiration" // deprecated in v1.9.0
+	cacheMemoryEnabled          = "cache.memory.enabled"    // deprecated in v1.10.0
+	cacheMemoryExpiration       = "cache.memory.expiration" // deprecated in v1.10.0
 	cacheMemoryEvictionInterval = "cache.memory.eviction_interval"
 	cacheRedisHost              = "cache.redis.host"
 	cacheRedisPort              = "cache.redis.port"
@@ -338,8 +344,11 @@ func Load(path string) (*Config, error) {
 		cfg.Cache.Backend = CacheMemory
 		cfg.Cache.Enabled = true
 
+		cfg.Warnings = append(cfg.Warnings, deprecatedMsgMemoryEnabled)
+
 		if viper.IsSet(cacheMemoryExpiration) {
 			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
+			cfg.Warnings = append(cfg.Warnings, deprecatedMsgMemoryExpiration)
 		}
 		if viper.IsSet(cacheMemoryEvictionInterval) {
 			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
@@ -525,7 +534,17 @@ func (c *Config) validate() error {
 }
 
 func (c *Config) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	out, err := json.Marshal(c)
+	var (
+		out []byte
+		err error
+	)
+
+	if r.Header.Get("Accept") == "application/json+pretty" {
+		out, err = json.MarshalIndent(c, "", "  ")
+	} else {
+		out, err = json.Marshal(c)
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
