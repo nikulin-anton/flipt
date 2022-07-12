@@ -45,6 +45,7 @@ func RegisterMetrics(c Cacher) {
 		),
 	}
 
+	prometheus.Unregister(collector)
 	prometheus.MustRegister(collector)
 }
 
