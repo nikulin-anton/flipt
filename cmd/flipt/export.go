@@ -19,8 +19,7 @@ import (
 
 var exportFilename string
 
-func runExport(_ []string) error {
-	ctx := context.Background()
+func runExport(ctx context.Context, _ []string) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	defer cancel()

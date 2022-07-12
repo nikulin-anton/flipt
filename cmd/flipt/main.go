@@ -94,7 +94,7 @@ func main() {
 			Short:   "Flipt is a modern feature flag solution",
 			Version: version,
 			Run: func(cmd *cobra.Command, args []string) {
-				if err := run(args); err != nil {
+				if err := run(cmd.Context(), args); err != nil {
 					logrus.Error(err)
 					logrus.Exit(1)
 				}
@@ -108,7 +108,7 @@ func main() {
 			Use:   "export",
 			Short: "Export flags/segments/rules to file/stdout",
 			Run: func(cmd *cobra.Command, args []string) {
-				if err := runExport(args); err != nil {
+				if err := runExport(cmd.Context(), args); err != nil {
 					logrus.Error(err)
 					logrus.Exit(1)
 				}
@@ -119,7 +119,7 @@ func main() {
 			Use:   "import",
 			Short: "Import flags/segments/rules from file",
 			Run: func(cmd *cobra.Command, args []string) {
-				if err := runImport(args); err != nil {
+				if err := runImport(cmd.Context(), args); err != nil {
 					logrus.Error(err)
 					logrus.Exit(1)
 				}
@@ -222,11 +222,10 @@ func main() {
 	logrus.Exit(0)
 }
 
-func run(_ []string) error {
+func run(ctx context.Context, _ []string) error {
 	color.Cyan(banner)
 	fmt.Println()
 
-	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
 	defer cancel()
