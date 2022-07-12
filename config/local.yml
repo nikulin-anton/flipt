@@ -9,14 +9,12 @@ log:
 #   allowed_origins: "*"
 
 cache:
-  # enabled: true
-  memory:
-    enabled: true
-  # backend: "redis"
-  # ttl: 60s
-  # redis:
-  #   host: "localhost"
-  #   port: 6379
+  enabled: true
+  backend: "redis"
+  ttl: 60s
+  redis:
+    host: "localhost"
+    port: 6379
 
   # memory:
   #   eviction_interval: 5m # evict expired items every 5m
