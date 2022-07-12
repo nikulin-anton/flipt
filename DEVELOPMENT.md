@@ -11,7 +11,7 @@ Before starting, make sure you have the following installed:
 - [Go 1.17+](https://golang.org/doc/install)
 - [NodeJS >= 18](https://nodejs.org/en/)
 - [Task](https://taskfile.dev/#/)
-- [Docker](https://www.docker.com/get-started/) (for running tests)
+- [Docker](https://docs.docker.com/install/) (for running tests)
 
 ## Setup
 

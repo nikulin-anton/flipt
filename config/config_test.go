@@ -130,6 +130,7 @@ func TestLoad(t *testing.T) {
 				cfg := Default()
 				cfg.Cache.Enabled = true
 				cfg.Cache.Backend = CacheMemory
+				cfg.Warnings = append(cfg.Warnings, deprecatedMsgMemoryEnabled)
 				return cfg
 			},
 		},

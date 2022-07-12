@@ -350,9 +350,6 @@ func Load(path string) (*Config, error) {
 			cfg.Cache.TTL = viper.GetDuration(cacheMemoryExpiration)
 			cfg.Warnings = append(cfg.Warnings, deprecatedMsgMemoryExpiration)
 		}
-		if viper.IsSet(cacheMemoryEvictionInterval) {
-			cfg.Cache.Memory.EvictionInterval = viper.GetDuration(cacheMemoryEvictionInterval)
-		}
 
 	} else if viper.IsSet(cacheEnabled) {
 		cfg.Cache.Enabled = viper.GetBool(cacheEnabled)
