@@ -20,8 +20,7 @@ const (
 	subsystem = "cache"
 )
 
-//nolint
-func registerMetrics(c Cacher) {
+func RegisterMetrics(c Cacher) {
 	labels := prometheus.Labels{"cache": c.String()}
 
 	collector := &metricsCollector{

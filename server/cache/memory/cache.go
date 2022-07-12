@@ -18,8 +18,13 @@ type Cache struct {
 
 // NewCache creates a new in memory cache with the provided cache config
 func NewCache(cfg config.CacheConfig) *Cache {
-	c := gocache.New(cfg.TTL, cfg.Memory.EvictionInterval)
-	return &Cache{c: c}
+	var (
+		gc = gocache.New(cfg.TTL, cfg.Memory.EvictionInterval)
+		c  = &Cache{c: gc}
+	)
+
+	cache.RegisterMetrics(c)
+	return c
 }
 
 func (c *Cache) Get(_ context.Context, key string) ([]byte, bool, error) {

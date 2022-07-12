@@ -19,8 +19,10 @@ type Cache struct {
 }
 
 // NewCache creates a new redis cache with the provided cache config
-func NewCache(cfg config.CacheConfig, c *redis.Cache) *Cache {
-	return &Cache{cfg: cfg, c: c}
+func NewCache(cfg config.CacheConfig, r *redis.Cache) *Cache {
+	c := &Cache{cfg: cfg, c: r}
+	cache.RegisterMetrics(c)
+	return c
 }
 
 func (c *Cache) Get(ctx context.Context, key string) ([]byte, bool, error) {
