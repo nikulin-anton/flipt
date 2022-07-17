@@ -6,7 +6,7 @@ labels: bug
 assignees: markphelps
 ---
 
-### Describe the Bdug
+### Describe the Bug
 
 <!--
 A clear and concise description of what the bug is.
