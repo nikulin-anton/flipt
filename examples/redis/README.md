@@ -1,11 +1,17 @@
-# MySQL Example
+# Redis Example
 
-This example shows how you can run Flipt with a MySQL database over the default SQLite.
+This example shows how you can run Flipt with a Redis cache.
 
-This works by setting the environment variable `FLIPT_DB_URL` to point to the MySQL database running in a container:
+This works by setting the following (or similar) configuration options:
 
-```bash
-FLIPT_DB_URL=mysql://mysql:password@mysql:3306/flipt
+```yaml
+cache:
+  enabled: true
+  backend: redis
+  ttl: 60s
+  redis:
+    host: redis
+    port: 6379
 ```
 
 ## Requirements

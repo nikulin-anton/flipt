@@ -1,4 +1,4 @@
-FROM markphelps/flipt:dev
+FROM markphelps/flipt:latest
 
 USER root
 

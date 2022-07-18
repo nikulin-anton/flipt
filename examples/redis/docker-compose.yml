@@ -18,6 +18,7 @@ services:
       - FLIPT_CACHE_ENABLED=true
       - FLIPT_CACHE_TTL=60s
       - FLIPT_CACHE_BACKEND=redis
+      - FLIPT_CACHE_REDIS_HOST=redis
       - FLIPT_LOG_LEVEL=debug
     command: ["./tmp/wait-for-it.sh", "redis:6379", "--", "./flipt"]
 
