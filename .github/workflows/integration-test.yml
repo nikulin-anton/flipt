@@ -36,6 +36,8 @@ jobs:
         with:
           path: bin/flipt
           key: ${{ runner.os }}-flipt
+          restore-keys: |
+            - ${{ runner.os }}-flipt-
 
       - uses: actions/setup-go@v3
         if: steps.cache.outputs.cache-hit != 'true'
@@ -75,6 +77,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache binary
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: bin/flipt
+          key: ${{ runner.os }}-flipt
+          restore-keys: |
+            - ${{ runner.os }}-flipt-
+
       - uses: ./.github/actions/integration-test
         with:
           args: ./test/api.sh
@@ -87,6 +98,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache binary
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: bin/flipt
+          key: ${{ runner.os }}-flipt
+          restore-keys: |
+            - ${{ runner.os }}-flipt-
+
       - uses: ./.github/actions/integration-test
         with:
           args: ./test/cli.bats
@@ -98,6 +118,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Cache binary
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: bin/flipt
+          key: ${{ runner.os }}-flipt
+          restore-keys: |
+            - ${{ runner.os }}-flipt-
 
       - uses: ./.github/actions/integration-test
         with:
