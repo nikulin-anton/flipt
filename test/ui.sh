@@ -31,7 +31,7 @@ run()
 
     ./test/helpers/wait-for-it/wait-for-it.sh "$flipt_host" -t 30
 
-    cd "ui" &&  npm test && npx playwright test
+    cd "ui" &&  npx jest && npx playwright test
 }
 
 run
