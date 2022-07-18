@@ -28,8 +28,6 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v3
-
       - name: Cache binary
         id: cache
         uses: actions/cache@v3
@@ -38,6 +36,9 @@ jobs:
           key: ${{ runner.os }}-flipt
           restore-keys: |
             - ${{ runner.os }}-flipt-
+
+      - uses: actions/checkout@v3
+        if: steps.cache.outputs.cache-hit != 'true'
 
       - uses: actions/setup-go@v3
         if: steps.cache.outputs.cache-hit != 'true'
@@ -86,7 +87,8 @@ jobs:
           restore-keys: |
             - ${{ runner.os }}-flipt-
 
-      - uses: ./.github/actions/integration-test
+      - name: Run API tests
+        uses: ./.github/actions/integration-test
         with:
           args: ./test/api.sh
 
@@ -107,13 +109,14 @@ jobs:
           restore-keys: |
             - ${{ runner.os }}-flipt-
 
-      - uses: ./.github/actions/integration-test
+      - name: Run CLI tests
+        uses: ./.github/actions/integration-test
         with:
           args: ./test/cli.bats
 
   ui:
     needs: setup
-    name: Test CLI
+    name: Test UI
     runs-on: ubuntu-latest
 
     steps:
@@ -128,6 +131,7 @@ jobs:
           restore-keys: |
             - ${{ runner.os }}-flipt-
 
-      - uses: ./.github/actions/integration-test
+      - name: Run UI tests
+        uses: ./.github/actions/integration-test
         with:
           args: ./test/ui.sh
