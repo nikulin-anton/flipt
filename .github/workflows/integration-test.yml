@@ -59,7 +59,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: flipt
-          path: ./bin/flipt
+          path: bin
           if-no-files-found: error
           retention-days: 1
 
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: flipt
-          path: ./bin/flipt
+          path: bin
 
       - name: Run API tests
         uses: ./.github/actions/integration-test
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: flipt
-          path: ./bin/flipt
+          path: bin
 
       - name: Run CLI tests
         uses: ./.github/actions/integration-test
@@ -110,7 +110,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: flipt
-          path: ./bin/flipt
+          path: bin
 
       - name: Run UI tests
         uses: ./.github/actions/integration-test
