@@ -1,8 +1,8 @@
-name: Go Nancy
+name: Scan
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - "deploy/**"
       - "examples/**"
@@ -18,14 +18,17 @@ on:
       - "**.md"
       - "**.txt"
       - "**.ya?ml"
+  workflow_dispatch:
 
 jobs:
   sleuth:
-    name: Sleuth
+    name: Nancy
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-go@v3
         with:
@@ -35,3 +38,16 @@ jobs:
 
       - name: Nancy
         uses: sonatype-nexus-community/nancy-github-action@main
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}

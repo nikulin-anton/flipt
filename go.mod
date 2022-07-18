@@ -96,7 +96,7 @@ require (
 	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
-	github.com/urfave/negroni v1.0.0 // indirect
+	github.com/urfave/negroni v1.0.1-0.20200608235619-7de0dfc1ff79 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
