@@ -28,35 +28,21 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Cache binary
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: bin/flipt
-          key: ${{ runner.os }}-flipt
-          restore-keys: |
-            - ${{ runner.os }}-flipt-
-
       - uses: actions/checkout@v3
-        if: steps.cache.outputs.cache-hit != 'true'
 
       - uses: actions/setup-go@v3
-        if: steps.cache.outputs.cache-hit != 'true'
         with:
           go-version: "1.17.x"
 
       - uses: actions/setup-node@v3
-        if: steps.cache.outputs.cache-hit != 'true'
         with:
           node-version: "18"
           cache: "npm"
           cache-dependency-path: ui/package-lock.json
 
       - uses: arduino/setup-task@v1
-        if: steps.cache.outputs.cache-hit != 'true'
 
       - uses: actions/cache@v3
-        if: steps.cache.outputs.cache-hit != 'true'
         with:
           path: |
             ~/.cache/go-build
@@ -66,9 +52,16 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build the binary
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           task
+
+      - name: Upload the binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: flipt
+          path: ./bin/flipt
+          if-no-files-found: error
+          retention-days: 1
 
   api:
     needs: setup
@@ -78,13 +71,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: cache
-        uses: actions/cache@v3
+      - uses: actions/download-artifact@v3
         with:
-          path: bin/flipt
-          key: ${{ runner.os }}-flipt
-          restore-keys: |
-            - ${{ runner.os }}-flipt-
+          name: flipt
+          path: ./bin/flipt
 
       - name: Run API tests
         uses: ./.github/actions/integration-test
@@ -99,13 +89,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: cache
-        uses: actions/cache@v3
+      - uses: actions/download-artifact@v3
         with:
-          path: bin/flipt
-          key: ${{ runner.os }}-flipt
-          restore-keys: |
-            - ${{ runner.os }}-flipt-
+          name: flipt
+          path: ./bin/flipt
 
       - name: Run CLI tests
         uses: ./.github/actions/integration-test
@@ -120,13 +107,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: cache
-        uses: actions/cache@v3
+      - uses: actions/download-artifact@v3
         with:
-          path: bin/flipt
-          key: ${{ runner.os }}-flipt
-          restore-keys: |
-            - ${{ runner.os }}-flipt-
+          name: flipt
+          path: ./bin/flipt
 
       - name: Run UI tests
         uses: ./.github/actions/integration-test
