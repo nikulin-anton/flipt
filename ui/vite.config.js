@@ -10,8 +10,12 @@ export default defineConfig(({ mode }) => {
   const host = process.env.FLIPT_SERVER_HTTP_HOST || "localhost";
   // get FLIPT_SERVER_HTTP_PORT from environment variable or default to 8080
   const port = process.env.FLIPT_SERVER_HTTP_PORT || 8080;
+  // get FLIPT_SERVER_BASE_URL from environment variable or default to /
+  const base = process.env.FLIPT_SERVER_BASE_URL || "/";
+
   return {
     plugins: [vue()],
+    base,
     resolve: {
       extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".vue"],
       alias: [
