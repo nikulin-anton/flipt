@@ -16,7 +16,7 @@
 .task/
 Dockerfile
 LICENSE
-bin/
+# bin/
 examples/
 ui/dist/
 ui/node_modules/

@@ -1,12 +1,12 @@
 snapshot:
-  name_template: "{{ .ShortCommit }}-snapshot"
+  name_template: '{{ .ShortCommit }}-snapshot'
 
 builds:
   - main: ./cmd/flipt/.
     env:
       - CGO_ENABLED=1
     ldflags:
-      - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.analyticsKey={{ .Env.ANALYTICS_KEY }}
+      # - -s -w -X main.version={{ .Version }} -X main.commit={{ .Commit }} -X main.date={{ .Date }} -X main.analyticsKey={{ .Env.ANALYTICS_KEY }}
       - -linkmode external -extldflags -static
     goos:
       - linux
@@ -31,7 +31,7 @@ archives:
       - ./config/default.yml
 
 checksum:
-  name_template: "checksums.txt"
+  name_template: 'checksums.txt'
 
 changelog:
   use: github-native
@@ -40,14 +40,14 @@ dockers:
   - dockerfile: ./build/Dockerfile
     use: buildx
     image_templates:
-      - "markphelps/flipt:latest"
-      - "markphelps/flipt:{{ .Tag }}"
-      - "ghcr.io/markphelps/flipt:latest"
-      - "ghcr.io/markphelps/flipt:{{ .Tag }}"
+      - 'markphelps/flipt:latest'
+      - 'markphelps/flipt:{{ .Tag }}'
+      - 'ghcr.io/markphelps/flipt:latest'
+      - 'ghcr.io/markphelps/flipt:{{ .Tag }}'
     build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+      - '--label=org.opencontainers.image.created={{.Date}}'
+      - '--label=org.opencontainers.image.revision={{.FullCommit}}'
+      - '--label=org.opencontainers.image.version={{.Version}}'
     extra_files:
       - config/migrations/
       - config/default.yml

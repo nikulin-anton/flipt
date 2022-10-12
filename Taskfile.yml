@@ -20,13 +20,13 @@ tasks:
     desc: Prepare for release
     cmds:
       - task: clean
-      - task: proto
+      # - task: proto
       - task: assets
 
   assets:
     desc: Build the UI
     deps: [assets:deps]
-    dir: "{{.UI}}"
+    dir: '{{.UI}}'
     cmds:
       - npm run build
     sources:
@@ -39,7 +39,7 @@ tasks:
 
   assets:deps:
     desc: Install UI dependencies
-    dir: "{{.UI}}"
+    dir: '{{.UI}}'
     cmds:
       - npm ci
     sources:
@@ -48,7 +48,7 @@ tasks:
 
   assets:dev:
     desc: Run the UI dev server
-    dir: "{{.UI}}"
+    dir: '{{.UI}}'
     cmds:
       - npm run dev
 
