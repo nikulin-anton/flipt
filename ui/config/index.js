@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 export const dev = {
   // Paths
   assetsSubDirectory: "static",
-  assetsPublicPath: "/",
+  assetsPublicPath: "/feature-flags/",
   proxyTable: {},
 
   // Various Dev Server settings
@@ -53,7 +53,7 @@ export const build = {
   // Paths
   assetsRoot: path.resolve(__dirname, "../dist"),
   assetsSubDirectory: "static",
-  assetsPublicPath: "./",
+  assetsPublicPath: "./feature-flags/",
 
   /**
    * Source Maps
